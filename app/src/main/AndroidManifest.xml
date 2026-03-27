@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <application
+        android:allowBackup="true"
+        android:enableOnBackInvokedCallback="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/launcher_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.ZenSee">
+        <receiver
+            android:name=".ReminderReceiver"
+            android:exported="false" />
+        <activity
+            android:name=".FeedbackActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".GroupManagementActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".GroupDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".GroupNotificationsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".GroupCreateActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".GroupDiscoverActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".LogMoodActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <receiver
+            android:name=".ReminderBootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+        <activity
+            android:name=".AboutActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".ReminderSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".AccountActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".SignUpActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".ForgotPasswordActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".PasswordRecoveryUpdateActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.ZenSee">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="zensee"
+                    android:host="auth"
+                    android:path="/reset-password" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".MoodHistoryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".MeditationHistoryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".MeditationActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ZenSee">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

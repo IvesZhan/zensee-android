@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true">
+        <inset
+            android:insetLeft="10dp"
+            android:insetTop="6dp"
+            android:insetRight="10dp"
+            android:insetBottom="6dp">
+            <shape>
+                <solid android:color="@color/zs_nav_selected_bg" />
+                <corners android:radius="16dp" />
+            </shape>
+        </inset>
+    </item>
+
+    <item>
+        <color android:color="@android:color/transparent" />
+    </item>
+</selector>

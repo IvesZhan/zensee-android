@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.ZenSee" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/zs_primary</item>
+        <item name="colorPrimaryVariant">@color/zs_primary_dark</item>
+        <item name="colorOnPrimary">@color/zs_white</item>
+        <item name="colorSecondary">@color/zs_accent</item>
+        <item name="colorSecondaryVariant">@color/zs_primary</item>
+        <item name="colorOnSecondary">@color/zs_white</item>
+        <item name="colorSurface">@color/zs_surface</item>
+        <item name="colorOnSurface">@color/zs_text_main</item>
+        <item name="colorOnBackground">@color/zs_text_main</item>
+        <item name="android:windowBackground">@color/zs_background</item>
+        <item name="android:colorBackground">@color/zs_background</item>
+        <item name="android:statusBarColor" tools:targetApi="l">@android:color/transparent</item>
+        <item name="android:navigationBarColor" tools:targetApi="o_mr1">@android:color/transparent</item>
+    </style>
+</resources>

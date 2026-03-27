@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/groupDiscoverRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/zs_background"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/groupDiscoverToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:minHeight="56dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="8dp"
+        app:navigationIconTint="@color/zs_primary_dark"
+        app:titleTextColor="@color/zs_primary_dark" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="20dp">
+
+        <EditText
+            android:id="@+id/groupSearchInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_capsule_surface"
+            android:hint="@string/group_search_hint"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:paddingStart="16dp"
+            android:paddingTop="14dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="14dp"
+            android:textColor="@color/zs_primary_dark"
+            android:textColorHint="@color/zs_text_subtle"
+            android:textSize="14sp" />
+
+        <FrameLayout
+            android:id="@+id/groupDiscoverContentHost"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="16dp"
+            android:layout_weight="1">
+
+            <ProgressBar
+                android:id="@+id/groupSearchLoadingState"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/groupDiscoverPromptText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:text="@string/group_discover_prompt"
+                android:textColor="@color/zs_text_subtle"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/groupCenteredActionContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/groupCreateButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_group_outline_button"
+                    android:gravity="center"
+                    android:paddingTop="22dp"
+                    android:paddingBottom="22dp"
+                    android:text="@string/group_create_title"
+                    android:textColor="@color/zs_text_subtle"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/groupSearchResultsScroll"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:id="@+id/groupSearchResultsContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/groupSearchResultsContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+
+                    <TextView
+                        android:id="@+id/groupFooterActionButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/bg_group_outline_button"
+                        android:gravity="center"
+                        android:paddingTop="22dp"
+                        android:paddingBottom="22dp"
+                        android:text="@string/group_create_title"
+                        android:textColor="@color/zs_text_subtle"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
+        </FrameLayout>
+    </LinearLayout>
+</LinearLayout>

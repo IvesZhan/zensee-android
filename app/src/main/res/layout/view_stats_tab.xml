@@ -1,0 +1,513 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/statsTabRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/zs_background">
+
+    <LinearLayout
+        android:id="@+id/statsUnauthenticatedState"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="28dp"
+        android:paddingEnd="28dp"
+        android:paddingBottom="64dp"
+        android:visibility="gone">
+
+        <FrameLayout
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:background="@drawable/bg_stats_placeholder_circle">
+
+            <ImageView
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_tab_stats"
+                android:tint="@color/zs_primary" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/statsPlaceholderTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center"
+            android:text="@string/stats_login_title"
+            android:textColor="@color/zs_primary_dark"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/statsPlaceholderSubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="@string/stats_login_subtitle"
+            android:textColor="@color/zs_text_subtle"
+            android:textSize="14sp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/statsLoginButton"
+            style="@style/Widget.ZenSee.PrimaryButton"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="32dp"
+            android:text="@string/go_to_login_signup" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/statsLoadingState"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <ProgressBar
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminateTint="@color/zs_stats_gold" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/statsAuthenticatedContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="none"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="96dp">
+
+            <TextView
+                android:id="@+id/statsSloganText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/stats_slogan"
+                android:textColor="@color/zs_text_subtle"
+                android:textSize="11sp"
+                android:textStyle="italic" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                android:gravity="bottom"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/total_meditation"
+                    android:textColor="@color/zs_primary_dark"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/statsTotalMinutesText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textColor="@color/zs_stats_gold"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="@string/minutes_label"
+                    android:textColor="@color/zs_primary_dark"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:paddingBottom="24dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="bottom"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/statsTotalDaysText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/zs_stats_gold"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="2dp"
+                            android:text="@string/days_unit"
+                            android:textColor="@color/zs_text_subtle"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="@string/accumulated_meditation"
+                        android:textColor="@color/zs_text_subtle"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="28dp"
+                    android:background="@color/zs_border" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="bottom"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/statsStreakDaysText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/zs_stats_gold"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="2dp"
+                            android:text="@string/days_unit"
+                            android:textColor="@color/zs_text_subtle"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="@string/continuous_practice"
+                        android:textColor="@color/zs_text_subtle"
+                        android:textSize="10sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/statsTrendCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_home_card"
+                android:elevation="2dp"
+                android:orientation="vertical"
+                android:paddingStart="20dp"
+                android:paddingTop="18dp"
+                android:paddingEnd="20dp"
+                android:paddingBottom="12dp">
+
+                <LinearLayout
+                    android:id="@+id/statsPeriodSegment"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_stats_segment_group"
+                    android:orientation="horizontal"
+                    android:padding="4dp">
+
+                    <TextView
+                        android:id="@+id/statsWeekButton"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="@string/stats_period_week"
+                        android:textColor="@color/zs_text_subtle"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/statsMonthButton"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="@string/stats_period_month"
+                        android:textColor="@color/zs_text_subtle"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/statsLast30Button"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="@string/stats_period_last_30"
+                        android:textColor="@color/zs_text_subtle"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="end"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:id="@+id/statsBarChartButton"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/bg_stats_icon_toggle"
+                        android:padding="6dp"
+                        android:src="@drawable/ic_stats_bar_chart"
+                        android:tint="@color/zs_text_subtle" />
+
+                    <ImageView
+                        android:id="@+id/statsLineChartButton"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_stats_icon_toggle"
+                        android:padding="6dp"
+                        android:src="@drawable/ic_stats_line_chart"
+                        android:tint="@color/zs_text_subtle" />
+                </LinearLayout>
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="220dp"
+                    android:layout_marginTop="8dp">
+
+                    <HorizontalScrollView
+                        android:id="@+id/statsBarChartScroll"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:overScrollMode="never"
+                        android:scrollbars="none">
+
+                        <com.zensee.android.widget.StatsTrendChartView
+                            android:id="@+id/statsBarChartView"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent" />
+                    </HorizontalScrollView>
+
+                    <HorizontalScrollView
+                        android:id="@+id/statsLineChartScroll"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:overScrollMode="never"
+                        android:scrollbars="none"
+                        android:visibility="gone">
+
+                        <com.zensee.android.widget.StatsTrendChartView
+                            android:id="@+id/statsLineChartView"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent" />
+                    </HorizontalScrollView>
+
+                    <TextView
+                        android:id="@+id/statsAverageBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="top|end"
+                        android:layout_marginEnd="12dp"
+                        android:background="@drawable/bg_stats_average_badge"
+                        android:elevation="6dp"
+                        android:paddingStart="10dp"
+                        android:paddingTop="6dp"
+                        android:paddingEnd="10dp"
+                        android:paddingBottom="6dp"
+                        android:textColor="@color/zs_stats_gold"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/statsHeatmapCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/bg_home_card"
+                android:elevation="2dp"
+                android:orientation="vertical"
+                android:paddingStart="16dp"
+                android:paddingTop="16dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/stats_heatmap_title"
+                        android:textColor="@color/zs_primary_dark"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+
+                    <TextView
+                        android:id="@+id/statsHeatmapYearText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/zs_text_subtle"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="16dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="32dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:gravity="end|center_vertical"
+                            android:text="@string/stats_weekday_one"
+                            android:textColor="@color/zs_text_subtle"
+                            android:textSize="10sp" />
+
+                        <Space android:layout_width="match_parent" android:layout_height="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:gravity="end|center_vertical"
+                            android:text="@string/stats_weekday_two"
+                            android:textColor="@color/zs_text_subtle"
+                            android:textSize="10sp" />
+
+                        <Space android:layout_width="match_parent" android:layout_height="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:gravity="end|center_vertical"
+                            android:text="@string/stats_weekday_three"
+                            android:textColor="@color/zs_text_subtle"
+                            android:textSize="10sp" />
+
+                        <Space android:layout_width="match_parent" android:layout_height="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:gravity="end|center_vertical"
+                            android:text="@string/stats_weekday_four"
+                            android:textColor="@color/zs_text_subtle"
+                            android:textSize="10sp" />
+
+                        <Space android:layout_width="match_parent" android:layout_height="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:gravity="end|center_vertical"
+                            android:text="@string/stats_weekday_five"
+                            android:textColor="@color/zs_text_subtle"
+                            android:textSize="10sp" />
+
+                        <Space android:layout_width="match_parent" android:layout_height="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:gravity="end|center_vertical"
+                            android:text="@string/stats_weekday_six"
+                            android:textColor="@color/zs_text_subtle"
+                            android:textSize="10sp" />
+
+                        <Space android:layout_width="match_parent" android:layout_height="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:gravity="end|center_vertical"
+                            android:text="@string/stats_weekday_seven"
+                            android:textColor="@color/zs_text_subtle"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <HorizontalScrollView
+                        android:id="@+id/statsHeatmapScroll"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:overScrollMode="never"
+                        android:scrollbars="none">
+
+                        <com.zensee.android.widget.StatsYearHeatmapView
+                            android:id="@+id/statsHeatmapView"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </HorizontalScrollView>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/statsHeatmapLegendContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="end|center_vertical"
+                    android:orientation="horizontal" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</FrameLayout>

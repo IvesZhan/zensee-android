@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    app:cardBackgroundColor="@color/zs_surface"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="0dp"
+    app:strokeColor="@color/zs_border"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="top"
+            android:orientation="horizontal"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/groupAvatarText"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/bg_group_avatar"
+                android:gravity="center"
+                android:textColor="@color/zs_primary_dark"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/groupNameText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/zs_primary_dark"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/groupOwnerBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_group_badge"
+                        android:paddingStart="6dp"
+                        android:paddingTop="3dp"
+                        android:paddingEnd="6dp"
+                        android:paddingBottom="3dp"
+                        android:text="@string/group_role_owner"
+                        android:textColor="@color/zs_primary"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/groupPendingBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_group_badge"
+                        android:paddingStart="6dp"
+                        android:paddingTop="3dp"
+                        android:paddingEnd="6dp"
+                        android:paddingBottom="3dp"
+                        android:text="@string/group_status_pending"
+                        android:textColor="@color/zs_primary"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/groupJoinedBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_group_badge"
+                        android:paddingStart="6dp"
+                        android:paddingTop="3dp"
+                        android:paddingEnd="6dp"
+                        android:paddingBottom="3dp"
+                        android:text="@string/group_joined_badge"
+                        android:textColor="@color/zs_primary"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
+                    <FrameLayout
+                        android:id="@+id/groupActionBadgeContainer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/groupActionBadge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_group_action_badge_neutral"
+                            android:gravity="center"
+                            android:paddingStart="10dp"
+                            android:paddingTop="6dp"
+                            android:paddingEnd="10dp"
+                            android:paddingBottom="6dp"
+                            android:textColor="@color/zs_text_subtle"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <ProgressBar
+                            android:id="@+id/groupActionBadgeLoading"
+                            style="?android:attr/progressBarStyleSmall"
+                            android:layout_width="34dp"
+                            android:layout_height="28dp"
+                            android:layout_gravity="center"
+                            android:indeterminate="true"
+                            android:indeterminateTint="@color/zs_primary"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:visibility="gone" />
+                    </FrameLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/groupMemberCountText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:textColor="@color/zs_text_subtle"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/groupDescriptionText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:textColor="@color/zs_text_subtle"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:background="@color/zs_row_icon_bg"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="3"
+                android:background="@color/zs_primary" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="launcher_name">禅·见</string>
+    <string name="brand_name">禅·见</string>
+    <string name="reminder_mode_title">提醒方式</string>
+    <string name="reminder_mode_notification">每日通知</string>
+    <string name="reminder_mode_alarm">每日闹钟</string>
+    <string name="reminder_mode_notification_summary">以系统通知的形式提醒你该开始打坐，适合轻量打扰。</string>
+    <string name="reminder_mode_alarm_summary">以更强的系统闹钟级提醒方式提醒你，适合强提醒场景。</string>
+    <string name="reminder_limitations_title">限制说明</string>
+    <string name="reminder_mode_notification_limitations">1. 每日提醒依赖系统通知策略，不同设备的横幅、锁屏显示和电池优化策略可能不同。\n2. Android 12 及以上系统可能还需要你允许“精确提醒”，否则后台提醒的准时性会变差。\n3. 如果你手动强行停止 APP，系统可能不再投递后续提醒，需重新打开 APP。</string>
+    <string name="reminder_mode_alarm_limitations">1. 每日闹钟需要授权“精确提醒”，否则系统无法保证准时触发。\n2. 即使使用闹钟模式，如果你手动强行停止 APP，系统仍可能中断后续提醒，需重新打开 APP。\n3. 闹钟模式打扰更强，可能会点亮屏幕或显示更明显的提醒界面。</string>
+    <string name="reminder_every_day_time_with_mode">每天 %1$s · %2$s</string>
+    <string name="reminder_notification_guide_title">开启系统通知提醒</string>
+    <string name="reminder_notification_guide_message">首次开启每日提醒后，请在系统通知设置中确认打开横幅/悬浮通知、声音、震动和锁屏显示，否则可能收不到打坐提醒。</string>
+    <string name="reminder_notification_guide_action">去开启通知</string>
+    <string name="reminder_notification_guide_later">稍后设置</string>
+    <string name="group_people_unit">人</string>
+    <string name="minutes_unit">分钟</string>
+    <string name="group_status_minutes">%1$d 分钟</string>
+    <string name="group_discover_title">加入群组</string>
+    <string name="meditation_duration_minutes">%1$d 分钟</string>
+    <string name="no_cool_down">无收功</string>
+    <string name="cool_down_short">收功</string>
+    <string name="start_now">开始</string>
+    <string name="none_short">无</string>
+    <string name="cool_down_option_minutes">%1$d 分钟</string>
+    <string name="duration_hours">%1$d小时</string>
+    <string name="duration_hours_minutes">%1$d小时%2$d分</string>
+</resources>

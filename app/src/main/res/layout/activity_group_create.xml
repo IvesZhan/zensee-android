@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/groupCreateRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/zs_background"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/groupCreateToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:minHeight="56dp"
+        app:navigationIconTint="@color/zs_primary_dark"
+        app:titleTextColor="@color/zs_primary_dark" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="20dp">
+
+            <LinearLayout
+                android:id="@+id/groupCreateInfoCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_group_info_card"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/groupCreateInfoTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/zs_primary_dark"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/group_create_info_body"
+                    android:textColor="@color/zs_text_subtle"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="@string/group_name_label"
+                android:textColor="@color/zs_primary_dark"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/groupNameInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_capsule_surface"
+                android:hint="@string/group_name_hint"
+                android:inputType="textCapSentences"
+                android:maxLength="24"
+                android:paddingStart="16dp"
+                android:paddingTop="14dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="14dp"
+                android:textColor="@color/zs_primary_dark"
+                android:textColorHint="@color/zs_text_subtle"
+                android:textSize="15sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/group_name_hint_detail"
+                android:textColor="@color/zs_text_subtle"
+                android:textSize="11sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/group_description_label"
+                    android:textColor="@color/zs_primary_dark"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/group_optional"
+                    android:textColor="@color/zs_text_subtle"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/groupDescriptionCountText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:textColor="@color/zs_text_subtle"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <EditText
+                android:id="@+id/groupDescriptionInput"
+                android:layout_width="match_parent"
+                android:layout_height="118dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_capsule_surface"
+                android:gravity="top|start"
+                android:hint="@string/group_description_hint"
+                android:inputType="textCapSentences|textMultiLine"
+                android:maxLength="120"
+                android:paddingStart="16dp"
+                android:paddingTop="14dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="14dp"
+                android:textColor="@color/zs_primary_dark"
+                android:textColorHint="@color/zs_text_subtle"
+                android:textSize="15sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/group_description_footer"
+                android:textColor="@color/zs_text_subtle"
+                android:textSize="11sp" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="0dp">
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/groupCreateSubmitButton"
+                    style="@style/Widget.ZenSee.PrimaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="@string/group_create_submit" />
+
+                <ProgressBar
+                    android:id="@+id/groupCreateSubmitProgress"
+                    style="?android:attr/progressBarStyleSmall"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:clickable="false"
+                    android:indeterminate="true"
+                    android:indeterminateTint="@color/zs_white"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="@string/group_create_footer_note"
+                android:textColor="@color/zs_text_subtle"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

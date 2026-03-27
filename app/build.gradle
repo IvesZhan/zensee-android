@@ -1,0 +1,93 @@
+import java.io.FileInputStream
+import java.util.Properties
+
+apply plugin: "com.android.application"
+apply plugin: "org.jetbrains.kotlin.android"
+
+def signingPropertiesFile = rootProject.file("key.properties")
+def signingProperties = new Properties()
+if (signingPropertiesFile.exists()) {
+    signingProperties.load(new FileInputStream(signingPropertiesFile))
+}
+
+def requiredLocalProperty = { String key ->
+    def value = signingProperties.getProperty(key)
+    if (value == null || value.trim().isEmpty()) {
+        throw new GradleException("Missing required property '${key}' in key.properties")
+    }
+    return value
+}
+
+android {
+    namespace = "com.zensee.android"
+    compileSdk = 35
+
+    signingConfigs {
+        release {
+            if (signingPropertiesFile.exists()) {
+                storeFile = rootProject.file(signingProperties["storeFile"])
+                storePassword = signingProperties["storePassword"]
+                keyAlias = signingProperties["keyAlias"]
+                keyPassword = signingProperties["keyPassword"]
+            }
+        }
+    }
+
+    defaultConfig {
+        applicationId = "com.zensee.android"
+        minSdk = 26
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0"
+        buildConfigField "String", "SUPABASE_URL", "\"${requiredLocalProperty("supabaseUrl")}\""
+        buildConfigField "String", "SUPABASE_ANON_KEY", "\"${requiredLocalProperty("supabaseAnonKey")}\""
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+    }
+
+    buildTypes {
+        release {
+            if (signingPropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    buildFeatures {
+        buildConfig = true
+        viewBinding = true
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+dependencies {
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.6.1")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+
+    testImplementation("junit:junit:4.13.2")
+}

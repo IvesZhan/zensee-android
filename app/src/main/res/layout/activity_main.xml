@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/zs_background">
+
+    <LinearLayout
+        android:id="@+id/mainContentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/mainHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:minHeight="54dp"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="12dp">
+
+            <TextView
+                android:id="@+id/headerTitleText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/home_header_title"
+                android:textColor="@color/zs_primary_dark"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:id="@+id/headerActionButton"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless"
+                android:visibility="invisible">
+
+                <ImageView
+                    android:id="@+id/headerActionIcon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_capsule_tint"
+                    android:padding="9dp"
+                    android:src="@android:drawable/ic_popup_sync"
+                    android:tint="@color/zs_primary" />
+
+                <View
+                    android:id="@+id/headerActionBadgeText"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/bg_group_unread_badge"
+                    android:visibility="gone" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <ViewFlipper
+            android:id="@+id/tabFlipper"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <include
+                android:id="@+id/homeRoot"
+                layout="@layout/view_home_tab" />
+
+            <include
+                android:id="@+id/statsRoot"
+                layout="@layout/view_stats_tab" />
+
+            <include
+                android:id="@+id/groupRoot"
+                layout="@layout/view_group_tab" />
+
+            <include
+                android:id="@+id/profileRoot"
+                layout="@layout/view_profile_tab" />
+        </ViewFlipper>
+
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/bottomNav"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/zs_surface"
+            android:minHeight="64dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            app:itemBackground="@drawable/bg_bottom_nav_item"
+            app:itemIconSize="22dp"
+            app:itemPaddingBottom="6dp"
+            app:itemPaddingTop="8dp"
+            app:itemIconTint="@color/bottom_nav_tint"
+            app:itemTextColor="@color/bottom_nav_tint"
+            app:labelVisibilityMode="labeled"
+            app:menu="@menu/bottom_nav_menu" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/splashOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/zs_background">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingBottom="64dp">
+
+            <FrameLayout
+                android:id="@+id/splashIconCluster"
+                android:layout_width="320dp"
+                android:layout_height="320dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="132dp">
+
+                <View
+                    android:layout_width="320dp"
+                    android:layout_height="320dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_ripple_ring" />
+
+                <View
+                    android:layout_width="256dp"
+                    android:layout_height="256dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_ripple_ring_strong" />
+
+                <ImageView
+                    android:layout_width="112dp"
+                    android:layout_height="112dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/meditation_icon"
+                    android:tint="@color/zs_accent" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="484dp"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/ma_shan_zheng_regular"
+                    android:text="@string/brand_name"
+                    android:textColor="@color/zs_accent"
+                    android:textSize="40sp" />
+
+                <FrameLayout
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="16dp"
+                    android:background="@drawable/bg_seal">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:lineSpacingExtra="-2dp"
+                        android:text="禅\n心"
+                        android:textColor="@color/zs_white"
+                        android:textSize="10sp" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal|bottom"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:letterSpacing="0.35"
+                    android:text="@string/zen_slogan"
+                    android:textColor="@color/zs_text_subtle"
+                    android:textSize="14sp" />
+
+                <View
+                    android:layout_width="32dp"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@color/zs_accent" />
+            </LinearLayout>
+        </FrameLayout>
+    </FrameLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
