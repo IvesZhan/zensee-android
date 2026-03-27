@@ -76,6 +76,12 @@ gradle/wrapper
 ./gradlew test
 ```
 
+## 安全检查
+
+发布前请先过一遍安全检查清单：
+
+- `SECURITY_CHECKLIST.md`
+
 ## 发布流程
 
 - 源码托管：GitHub
