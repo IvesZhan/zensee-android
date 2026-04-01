@@ -159,6 +159,7 @@ class MeditationActivity : AppCompatActivity() {
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
         timerRippleAnimator?.cancel()
+        ZenAudioManager.stopPlayback()
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         super.onDestroy()
     }
@@ -314,7 +315,7 @@ class MeditationActivity : AppCompatActivity() {
     }
 
     private fun playBowl() {
-        ZenAudioManager.playBowl()
+        ZenAudioManager.playSelectedMeditationSound()
     }
 
     private fun startRippleAnimations() {

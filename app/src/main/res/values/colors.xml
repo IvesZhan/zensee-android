@@ -44,6 +44,11 @@
     <color name="zs_bottom_sheet_secondary_fill">#F1E9DE</color>
     <color name="zs_bottom_sheet_secondary_stroke">#4DA89574</color>
     <color name="zs_bottom_sheet_secondary_icon">#8E8071</color>
+    <color name="zs_sound_card_stroke">#1FA89574</color>
+    <color name="zs_sound_selected_tint">#A89574</color>
+    <color name="zs_sound_preview_fill">#73000000</color>
+    <color name="zs_sound_preview_stroke">#1FFFFFFF</color>
+    <color name="zs_sound_preview_icon">#FFFFFF</color>
     <color name="zs_stats_badge_fill">#F8F3EC</color>
     <color name="zs_stats_badge_stroke">#33A89574</color>
     <color name="zs_history_detail_fill">#40FFFCF8</color>

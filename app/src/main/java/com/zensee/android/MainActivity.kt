@@ -145,6 +145,10 @@ class MainActivity : AppCompatActivity() {
         binding.bottomNav.selectedItemId = R.id.tab_home
     }
 
+    fun openProfileTab() {
+        binding.bottomNav.selectedItemId = R.id.tab_profile
+    }
+
     private fun updateHeaderTitleStyle(tabId: Int) {
         val headerTypeface = if (tabId == R.id.tab_home) {
             ResourcesCompat.getFont(this, R.font.ma_shan_zheng_regular)

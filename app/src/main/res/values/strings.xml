@@ -258,6 +258,13 @@
     <string name="duration_minutes">禅修时长（分钟）</string>
     <string name="cool_down_minutes">收功时长（分钟）</string>
     <string name="begin_session">进入禅修</string>
+    <string name="meditation_sound">禅修声音</string>
+    <string name="meditation_sound_back">返回禅修设置</string>
+    <string name="meditation_sound_play">播放声音预览</string>
+    <string name="meditation_sound_pause">暂停声音预览</string>
+    <string name="meditation_sound_disabled_title">声音已关闭</string>
+    <string name="meditation_sound_disabled_message">请前往“我的”开启声音</string>
+    <string name="go_to_profile">去我的</string>
     <string name="pause_session">暂停</string>
     <string name="resume_session">继续</string>
     <string name="end_early">提前结束</string>
