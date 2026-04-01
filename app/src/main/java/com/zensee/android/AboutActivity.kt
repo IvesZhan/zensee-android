@@ -1,7 +1,5 @@
 package com.zensee.android
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -29,20 +27,20 @@ class AboutActivity : AppCompatActivity() {
         val versionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "1.0"
         binding.aboutVersionText.text = getString(R.string.version_format, versionName)
         binding.privacyPolicyRow.setOnClickListener {
-            openUrl("https://iveszhan.github.io/zensee-legal/privacy-policy/")
+            startActivity(
+                LegalDocumentDestination.createIntent(this, LegalDocumentType.PRIVACY_POLICY)
+            )
         }
         binding.termsRow.setOnClickListener {
-            openUrl("https://iveszhan.github.io/zensee-legal/terms-of-service/")
+            startActivity(
+                LegalDocumentDestination.createIntent(this, LegalDocumentType.TERMS)
+            )
         }
     }
 
     override fun onSupportNavigateUp(): Boolean {
         onBackPressedDispatcher.onBackPressed()
         return true
-    }
-
-    private fun openUrl(url: String) {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
 
     private fun applyWindowInsets() {

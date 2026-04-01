@@ -1,7 +1,5 @@
 package com.zensee.android
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.inputmethod.EditorInfo
 import androidx.appcompat.app.AppCompatActivity
@@ -45,10 +43,14 @@ class SignUpActivity : AppCompatActivity() {
         binding.signUpSubmitButton.setOnClickListener { submit() }
         binding.backLoginButton.setOnClickListener { finish() }
         binding.termsLinkButton.setOnClickListener {
-            openExternalUrl(getString(R.string.terms_of_service_url))
+            startActivity(
+                LegalDocumentDestination.createIntent(this, LegalDocumentType.TERMS)
+            )
         }
         binding.privacyLinkButton.setOnClickListener {
-            openExternalUrl(getString(R.string.privacy_policy_url))
+            startActivity(
+                LegalDocumentDestination.createIntent(this, LegalDocumentType.PRIVACY_POLICY)
+            )
         }
         binding.confirmPasswordInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -121,10 +123,6 @@ class SignUpActivity : AppCompatActivity() {
         binding.emailHintText.isVisible = email.isNotBlank() && !AuthUi.isEmailValid(email)
         binding.passwordMismatchText.isVisible =
             confirmPassword.isNotBlank() && password != confirmPassword
-    }
-
-    private fun openExternalUrl(url: String) {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
 
     private fun showError(message: String) {

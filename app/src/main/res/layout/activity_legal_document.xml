@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/legalDocumentRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/zs_background"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/legalDocumentToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/zs_background"
+        app:titleTextColor="@color/zs_primary_dark" />
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/legalDocumentProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:indeterminate="false"
+        android:max="100"
+        android:progress="0"
+        android:visibility="gone"
+        app:indicatorColor="@color/zs_gold"
+        app:trackColor="@color/zs_card_stroke" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <WebView
+            android:id="@+id/legalDocumentWebView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/zs_background" />
+
+        <LinearLayout
+            android:id="@+id/legalDocumentErrorState"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="28dp"
+            android:visibility="gone">
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.ZenSee.CardSurface"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
+                app:cardBackgroundColor="@color/zs_surface">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="@string/legal_document_load_error"
+                        android:textColor="@color/zs_primary_dark"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:gravity="center"
+                        android:text="@string/legal_document_load_error_hint"
+                        android:textColor="@color/zs_text_subtle"
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/legalDocumentRetryButton"
+                        style="@style/Widget.ZenSee.SecondaryButton"
+                        android:layout_width="160dp"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="18dp"
+                        android:text="@string/group_retry_load" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

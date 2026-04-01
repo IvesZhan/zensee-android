@@ -114,13 +114,10 @@
                     android:orientation="horizontal">
 
                     <com.google.android.material.card.MaterialCardView
+                        style="@style/Widget.ZenSee.CardSurface"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        app:cardBackgroundColor="@color/zs_surface"
-                        app:cardCornerRadius="16dp"
-                        app:strokeColor="@color/zs_border"
-                        app:strokeWidth="1dp">
+                        android:layout_weight="1">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -152,13 +149,10 @@
                         android:layout_height="1dp" />
 
                     <com.google.android.material.card.MaterialCardView
+                        style="@style/Widget.ZenSee.CardSurface"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        app:cardBackgroundColor="@color/zs_surface"
-                        app:cardCornerRadius="16dp"
-                        app:strokeColor="@color/zs_border"
-                        app:strokeWidth="1dp">
+                        android:layout_weight="1">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -218,7 +212,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="18dp"
-                    android:background="@drawable/bg_group_info_card"
+                    android:background="@drawable/bg_home_card"
                     android:orientation="vertical"
                     android:paddingTop="16dp"
                     android:paddingBottom="8dp"
@@ -247,7 +241,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:background="@drawable/bg_group_info_card"
+                    android:background="@drawable/bg_home_card"
                     android:orientation="vertical"
                     android:paddingTop="16dp"
                     android:paddingBottom="8dp"
@@ -276,7 +270,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="20dp"
-                    android:background="@drawable/bg_group_info_card"
+                    android:background="@drawable/bg_home_card"
                     android:padding="16dp"
                     android:text="@string/group_management_note"
                     android:textColor="@color/zs_text_subtle"
@@ -285,13 +279,10 @@
 
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/groupLeaveCard"
+                    style="@style/Widget.ZenSee.CardSurface"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="20dp"
-                    app:cardBackgroundColor="@color/zs_surface"
-                    app:cardCornerRadius="16dp"
-                    app:strokeColor="@color/zs_border"
-                    app:strokeWidth="1dp"
                     android:visibility="gone">
 
                     <LinearLayout

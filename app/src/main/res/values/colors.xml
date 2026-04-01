@@ -14,6 +14,8 @@
     <color name="zs_white">#FFFFFF</color>
     <color name="zs_gold">#A89574</color>
     <color name="zs_stats_gold">#B0935A</color>
+    <color name="zs_link_gold">#B6893E</color>
+    <color name="zs_link_gold_pressed">#9D7230</color>
     <color name="zs_border">#DCDAD5</color>
     <color name="zs_nav_selected_bg">#E9E4DC</color>
     <color name="zs_ring">#1A8E8071</color>

@@ -94,6 +94,19 @@
     <string name="terms_of_service">用户协议</string>
     <string name="privacy_policy_url">https://iveszhan.github.io/zensee-legal/privacy-policy/</string>
     <string name="terms_of_service_url">https://iveszhan.github.io/zensee-legal/terms-of-service/</string>
+    <string name="legal_document_load_error">页面加载失败</string>
+    <string name="legal_document_load_error_hint">请检查网络后重试</string>
+    <string name="privacy_consent_title">隐私与使用说明</string>
+    <string name="privacy_consent_message">继续使用前，请先阅读并同意应用的隐私说明。</string>
+    <string name="privacy_consent_account_title">账号与登录</string>
+    <string name="privacy_consent_account_detail">仅在你登录时保存必要的账号会话，用于识别身份与同步个人数据。</string>
+    <string name="privacy_consent_session_title">禅修与记录</string>
+    <string name="privacy_consent_session_detail">记录你的修行时长、心情和提醒设置，用于生成统计与连续修行体验。</string>
+    <string name="privacy_consent_preferences_title">通知与偏好</string>
+    <string name="privacy_consent_preferences_detail">本地保存提醒时间、音效等偏好；通知权限仅在你开启提醒后使用。</string>
+    <string name="privacy_consent_agreement_prefix">点击“同意并继续”，即表示你已阅读并同意</string>
+    <string name="privacy_consent_accept">同意并继续</string>
+    <string name="privacy_consent_exit">暂不使用</string>
     <string name="about_hero_subtitle">一个为禅修、提醒与日常觉察设计的安静空间。</string>
     <string name="about_footer_copy">愿你在每一次呼吸之间，重新回到当下。</string>
     <string name="account_title">账号</string>
@@ -288,7 +301,7 @@
     <string name="cool_down_short">收功</string>
     <string name="start_now">开始</string>
     <string name="none_short">无</string>
-    <string name="cool_down_option_minutes">%1$d 分钟</string>
+    <string name="cool_down_option_minutes">%1$d分</string>
     <string name="duration_hours">%1$d小时</string>
     <string name="duration_hours_minutes">%1$d小时%2$d分</string>
 </resources>

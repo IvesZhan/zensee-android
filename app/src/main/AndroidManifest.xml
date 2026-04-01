@@ -4,6 +4,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="true"
@@ -19,30 +20,42 @@
         <activity
             android:name=".FeedbackActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".GroupManagementActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".GroupDetailActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".GroupNotificationsActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".GroupCreateActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".GroupDiscoverActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".LogMoodActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name=".LegalDocumentActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <receiver
             android:name=".ReminderBootReceiver"
@@ -58,27 +71,33 @@
         <activity
             android:name=".AboutActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".ReminderSettingsActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".AccountActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".SignUpActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".ForgotPasswordActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".PasswordRecoveryUpdateActivity"
             android:exported="true"
             android:launchMode="singleTask"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -95,14 +114,17 @@
         <activity
             android:name=".LoginActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".MoodHistoryActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".MeditationHistoryActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
         <activity
             android:name=".MeditationActivity"
@@ -112,6 +134,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

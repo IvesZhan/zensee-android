@@ -1,12 +1,20 @@
 package com.zensee.android
 
 import android.animation.ValueAnimator
+import androidx.appcompat.app.AlertDialog
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.TextPaint
 import android.text.SpannableStringBuilder
 import android.text.Spanned
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
+import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -22,9 +30,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnLayout
+import androidx.core.content.res.ResourcesCompat
 import com.zensee.android.data.GroupRepository
 import com.zensee.android.data.ZenRepository
 import com.zensee.android.databinding.ActivityMainBinding
+import com.zensee.android.databinding.DialogPrivacyConsentBinding
 import com.zensee.android.domain.StatsPeriod
 import com.zensee.android.domain.StatsTrendBuilder
 import com.zensee.android.domain.StatsTrendPoint
@@ -50,6 +60,10 @@ class MainActivity : AppCompatActivity() {
     private var groupUnreadCount = 0
     private var isGroupLoading = false
     private var groupErrorMessage: String? = null
+    private var hasStartedHomeAnimations = false
+    private var privacyConsentDialog: AlertDialog? = null
+    private lateinit var privacyConsentGate: PrivacyConsentGate
+    private lateinit var defaultHeaderTypeface: Typeface
     private val authStateListener: (AuthState) -> Unit = { state -> dispatchAuthStateChanged(state) }
 
     private val meditationLauncher = registerForActivityResult(
@@ -90,9 +104,12 @@ class MainActivity : AppCompatActivity() {
         ZenAudioManager.initialize(this)
         ReminderManager.initialize(this)
         ReminderManager.ensureScheduledIfNeeded()
+        privacyConsentGate = PrivacyConsentGate(SharedPreferencesPrivacyConsentStore(this))
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        defaultHeaderTypeface = binding.headerTitleText.typeface
         applyWindowInsets()
+        scheduleSplashBrandingAlignment()
         setupBottomNav()
         setupMeditationConfigResult()
         setupInteractions()
@@ -121,10 +138,23 @@ class MainActivity : AppCompatActivity() {
                 R.id.tab_profile -> getString(R.string.profile_tab)
                 else -> getString(R.string.home_header_title)
             }
+            updateHeaderTitleStyle(item.itemId)
             updateHeaderActionButton()
             true
         }
         binding.bottomNav.selectedItemId = R.id.tab_home
+    }
+
+    private fun updateHeaderTitleStyle(tabId: Int) {
+        val headerTypeface = if (tabId == R.id.tab_home) {
+            ResourcesCompat.getFont(this, R.font.ma_shan_zheng_regular)
+        } else {
+            defaultHeaderTypeface
+        }
+        binding.headerTitleText.setTypeface(
+            headerTypeface ?: defaultHeaderTypeface,
+            if (tabId == R.id.tab_home) Typeface.NORMAL else Typeface.BOLD
+        )
     }
 
     private fun setupMeditationConfigResult() {
@@ -263,10 +293,154 @@ class MainActivity : AppCompatActivity() {
                 .withEndAction {
                     binding.splashOverlay.visibility = android.view.View.GONE
                     SystemBarStyler.setNavigationBarColor(this, getColor(R.color.zs_surface))
-                    startHomeAnimations()
+                    presentPrivacyConsentIfNeeded()
                 }
                 .start()
         }, 1500L)
+    }
+
+    private fun presentPrivacyConsentIfNeeded() {
+        if (!privacyConsentGate.shouldPresentPrompt) {
+            startHomeAnimationsIfNeeded()
+            return
+        }
+        if (privacyConsentDialog?.isShowing == true) return
+
+        val dialogBinding = DialogPrivacyConsentBinding.inflate(layoutInflater)
+        bindPrivacyConsentAgreementText(dialogBinding)
+        dialogBinding.privacyConsentAcceptButton.setOnClickListener {
+            privacyConsentGate.accept()
+            privacyConsentDialog?.dismiss()
+            privacyConsentDialog = null
+            startHomeAnimationsIfNeeded()
+        }
+        dialogBinding.privacyConsentExitButton.setOnClickListener {
+            privacyConsentDialog?.dismiss()
+            privacyConsentDialog = null
+            finishAffinity()
+            finishAndRemoveTask()
+        }
+
+        privacyConsentDialog = AlertDialog.Builder(this)
+            .setView(dialogBinding.root)
+            .create()
+            .apply {
+                setCancelable(false)
+                setCanceledOnTouchOutside(false)
+                window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                show()
+                val metrics = resources.displayMetrics
+                window?.setLayout(
+                    (metrics.widthPixels * 0.92f).toInt(),
+                    (metrics.heightPixels * 0.86f).toInt()
+                )
+            }
+    }
+
+    private fun bindPrivacyConsentAgreementText(dialogBinding: DialogPrivacyConsentBinding) {
+        val prefix = getString(R.string.privacy_consent_agreement_prefix)
+        val terms = getString(R.string.terms_of_service)
+        val joiner = getString(R.string.agreement_joiner)
+        val policy = getString(R.string.privacy_policy)
+        val gold = getColor(R.color.zs_link_gold)
+        val agreementText = SpannableStringBuilder()
+
+        agreementText.append(prefix)
+        agreementText.append(terms)
+        val termsStart = prefix.length
+        val termsEnd = agreementText.length
+        agreementText.append(joiner)
+        agreementText.append(policy)
+        val policyStart = termsEnd + joiner.length
+        val policyEnd = agreementText.length
+
+        agreementText.setSpan(
+            ForegroundColorSpan(gold),
+            termsStart,
+            termsEnd,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        agreementText.setSpan(
+            object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    startActivity(
+                        LegalDocumentDestination.createIntent(
+                            this@MainActivity,
+                            LegalDocumentType.TERMS
+                        )
+                    )
+                }
+
+                override fun updateDrawState(ds: TextPaint) {
+                    ds.isUnderlineText = false
+                    ds.color = gold
+                }
+            },
+            termsStart,
+            termsEnd,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        agreementText.setSpan(
+            ForegroundColorSpan(gold),
+            policyStart,
+            policyEnd,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        agreementText.setSpan(
+            object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    startActivity(
+                        LegalDocumentDestination.createIntent(
+                            this@MainActivity,
+                            LegalDocumentType.PRIVACY_POLICY
+                        )
+                    )
+                }
+
+                override fun updateDrawState(ds: TextPaint) {
+                    ds.isUnderlineText = false
+                    ds.color = gold
+                }
+            },
+            policyStart,
+            policyEnd,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+
+        dialogBinding.privacyConsentAgreementText.apply {
+            text = agreementText
+            movementMethod = LinkMovementMethod.getInstance()
+            highlightColor = Color.TRANSPARENT
+        }
+    }
+
+    private fun scheduleSplashBrandingAlignment() {
+        binding.root.doOnLayout { alignSplashBrandingToHomeButton() }
+        binding.splashIconCluster.doOnLayout { alignSplashBrandingToHomeButton() }
+        findViewById<View>(R.id.homeMeditationButtonInner).doOnLayout {
+            alignSplashBrandingToHomeButton()
+        }
+    }
+
+    private fun alignSplashBrandingToHomeButton() {
+        val homeButton = findViewById<View>(R.id.homeMeditationButtonInner)
+        val splashCluster = binding.splashIconCluster
+        val splashWordmark = binding.splashWordmark
+        val splashParent = splashCluster.parent as? View ?: return
+
+        if (homeButton.height == 0 || splashCluster.height == 0 || splashWordmark.height == 0) return
+
+        val homeLocation = IntArray(2)
+        val parentLocation = IntArray(2)
+        homeButton.getLocationOnScreen(homeLocation)
+        splashParent.getLocationOnScreen(parentLocation)
+
+        val targetCenterY = homeLocation[1] + (homeButton.height / 2f)
+        val targetClusterTop = targetCenterY - (splashCluster.height / 2f) - parentLocation[1]
+        val targetWordmarkTop = targetClusterTop + splashCluster.height + 32.dp
+
+        splashCluster.translationY = targetClusterTop - splashCluster.top
+        splashWordmark.translationY = targetWordmarkTop - splashWordmark.top
     }
 
     private fun renderAll() {
@@ -294,7 +468,7 @@ class MainActivity : AppCompatActivity() {
         return SpannableStringBuilder(fullText).apply {
             val unitStart = countText.length + separator.length
             setSpan(
-                RelativeSizeSpan(0.58f),
+                RelativeSizeSpan(0.2f),
                 unitStart,
                 fullText.length,
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
@@ -612,6 +786,12 @@ class MainActivity : AppCompatActivity() {
             ReminderManager.state().subtitleText(this)
     }
 
+    private fun startHomeAnimationsIfNeeded() {
+        if (hasStartedHomeAnimations) return
+        hasStartedHomeAnimations = true
+        startHomeAnimations()
+    }
+
     private fun startHomeAnimations() {
         startHomeRippleAnimator()
 
@@ -695,12 +875,15 @@ class MainActivity : AppCompatActivity() {
                 binding.splashOverlay.paddingRight,
                 splashBottom + systemBars.bottom
             )
+            binding.root.post { alignSplashBrandingToHomeButton() }
             insets
         }
     }
 
     override fun onDestroy() {
         homeRippleAnimator?.cancel()
+        privacyConsentDialog?.dismiss()
+        privacyConsentDialog = null
         if (::binding.isInitialized) {
             AuthManager.removeAuthStateListener(authStateListener)
         }

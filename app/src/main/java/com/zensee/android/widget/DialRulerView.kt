@@ -77,12 +77,14 @@ class DialRulerView @JvmOverloads constructor(
         }
 
     init {
+        isHapticFeedbackEnabled = true
         clipChildren = false
         clipToPadding = false
 
         scrollView.apply {
             overScrollMode = View.OVER_SCROLL_NEVER
             isHorizontalScrollBarEnabled = false
+            isHapticFeedbackEnabled = true
             clipChildren = false
             clipToPadding = false
             addView(
@@ -156,11 +158,16 @@ class DialRulerView @JvmOverloads constructor(
         val newValue = range.first + nearestIndex
         if (newValue == currentValue) return
 
+        val previousValue = currentValue
         currentValue = newValue
-        if (isUserDragging) {
-            performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        if (DialRulerHaptics.shouldTrigger(isUserDragging, previousValue, newValue)) {
+            performTickHaptic()
         }
         onValueChanged?.invoke(newValue)
+    }
+
+    private fun performTickHaptic() {
+        DialRulerHaptics.performTick(scrollView)
     }
 
     private fun snapToNearestTick(animated: Boolean) {
