@@ -269,7 +269,7 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:gravity="center"
-                    android:text="@string/share"
+                    android:text="@string/group_share_title"
                     android:textColor="@color/zs_primary"
                     android:textSize="16sp" />
             </LinearLayout>

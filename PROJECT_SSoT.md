@@ -452,10 +452,10 @@ erDiagram
 #### 5.6.5 数据库事实来源
 
 - Android 仓库当前没有单独保存 SQL 文档
-- 后端结构与 iOS 端使用的 Supabase schema 保持一致
-- 需要查 SQL / RLS 细节时，优先对照 iOS 仓库的：
-  - `docs/supabase/group_feature_schema.sql`
-  - `docs/supabase/group_sql_runbook.md`
+- 后端结构与仓库根目录 `Supabase/` 下的共享 schema 保持一致
+- 需要查 SQL / RLS 细节时，优先对照：
+  - `../Supabase/sql/group_feature_schema.sql`
+  - `../Supabase/group_sql_runbook.md`
 
 ### 5.7 RLS 设计原则
 

@@ -116,7 +116,7 @@ class MainActivity : AppCompatActivity() {
         updateGroupCtaLabels()
         AuthManager.addAuthStateListener(authStateListener)
         renderAll()
-        refreshRemoteData()
+        refreshRemoteData(forceRemoteFetch = true)
         refreshGroupData(force = true)
         showSplash()
     }
@@ -277,7 +277,7 @@ class MainActivity : AppCompatActivity() {
         }
         binding.headerActionButton.setOnClickListener {
             when (currentTabId) {
-                R.id.tab_stats -> refreshRemoteData(forceLoadingIndicator = true)
+                R.id.tab_stats -> refreshRemoteData(forceLoadingIndicator = true, forceRemoteFetch = true)
                 R.id.tab_group -> {
                     if (AuthManager.state().isAuthenticated) {
                         groupNotificationsLauncher.launch(Intent(this, GroupNotificationsActivity::class.java))
@@ -900,7 +900,7 @@ class MainActivity : AppCompatActivity() {
             renderAll()
             if (skipNextRemoteRefresh) {
                 skipNextRemoteRefresh = false
-            } else {
+            } else if (AppDataRefreshCoordinator.shouldRefreshZenData()) {
                 refreshRemoteData()
             }
         }
@@ -948,8 +948,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun refreshRemoteData(forceLoadingIndicator: Boolean = false) {
+    private fun refreshRemoteData(
+        forceLoadingIndicator: Boolean = false,
+        forceRemoteFetch: Boolean = false
+    ) {
         if (!AuthManager.state().isAuthenticated) return
+        if (!forceRemoteFetch && !AppDataRefreshCoordinator.shouldRefreshZenData()) {
+            isStatsLoading = false
+            renderStats()
+            return
+        }
         isStatsLoading = forceLoadingIndicator || ZenRepository.getStatsSnapshot().totalDays == 0
         renderStats()
         thread(name = "zensee-main-sync") {
@@ -1058,14 +1066,14 @@ class MainActivity : AppCompatActivity() {
         val language = locale.language.lowercase(Locale.ROOT)
         val country = locale.country.lowercase(Locale.ROOT)
         return when {
-            language == "ja" -> "https://iveszhan.github.io/zensee-legal/download/ja/"
+            language == "ja" -> "https://iveszhan.github.io/zensee-web/download/ja/"
             language == "zh" && (
                 languageTag.contains("-hant") ||
                     country in setOf("tw", "hk", "mo")
                 ) ->
-                "https://iveszhan.github.io/zensee-legal/download/zh-hant/"
-            language == "zh" -> "https://iveszhan.github.io/zensee-legal/download/"
-            else -> "https://iveszhan.github.io/zensee-legal/download/en/"
+                "https://iveszhan.github.io/zensee-web/download/zh-hant/"
+            language == "zh" -> "https://iveszhan.github.io/zensee-web/download/"
+            else -> "https://iveszhan.github.io/zensee-web/download/en/"
         }
     }
 

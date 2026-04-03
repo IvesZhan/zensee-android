@@ -2,6 +2,7 @@ package com.zensee.android
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
@@ -13,6 +14,11 @@ import com.zensee.android.databinding.ItemGroupRowBinding
 import com.zensee.android.model.GroupModel
 
 object GroupUi {
+    data class GroupTextEmphasisStyle(
+        val textColor: Int,
+        val typefaceStyle: Int
+    )
+
     data class GroupRowActionBadgeUi(
         val title: String,
         val isPrimary: Boolean,
@@ -135,6 +141,19 @@ object GroupUi {
 
         target.background = background
         target.setTextColor(resolvedStyle.textColor)
+    }
+
+    fun memberNameTextEmphasisStyle(context: Context): GroupTextEmphasisStyle {
+        return GroupTextEmphasisStyle(
+            textColor = ContextCompat.getColor(context, R.color.zs_primary_dark),
+            typefaceStyle = Typeface.BOLD
+        )
+    }
+
+    fun applyMemberNameTextStyle(target: TextView) {
+        val style = memberNameTextEmphasisStyle(target.context)
+        target.setTextColor(style.textColor)
+        target.setTypeface(target.typeface, style.typefaceStyle)
     }
 
     fun setNotificationDot(target: View, visible: Boolean) {

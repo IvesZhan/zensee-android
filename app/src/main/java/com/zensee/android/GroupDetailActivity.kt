@@ -28,9 +28,9 @@ class GroupDetailActivity : AppCompatActivity() {
     private val managementLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == RESULT_OK &&
-            result.data?.getBooleanExtra(GroupManagementActivity.EXTRA_DISSOLVED, false) == true
-        ) {
+        if (result.resultCode != RESULT_OK) return@registerForActivityResult
+
+        if (result.data?.getBooleanExtra(GroupManagementActivity.EXTRA_DISSOLVED, false) == true) {
             setResult(
                 RESULT_OK,
                 Intent()
@@ -44,6 +44,15 @@ class GroupDetailActivity : AppCompatActivity() {
                     )
             )
             finish()
+            return@registerForActivityResult
+        }
+
+        if (result.data?.getBooleanExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, false) == true) {
+            setResult(
+                RESULT_OK,
+                Intent().putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, true)
+            )
+            loadDetail()
         }
     }
 
@@ -177,6 +186,7 @@ class GroupDetailActivity : AppCompatActivity() {
             itemBinding.groupMemberAvatarText.text = member.nickname.take(1).ifBlank { "禅" }
             GroupUi.applyMemberAvatarStyle(itemBinding.groupMemberAvatarText, avatarStyles[member.userId])
             itemBinding.groupMemberNameText.text = member.nickname
+            GroupUi.applyMemberNameTextStyle(itemBinding.groupMemberNameText)
             itemBinding.groupMemberRoleBadge.visibility =
                 if (member.role == GroupMembershipRole.OWNER) android.view.View.VISIBLE else android.view.View.GONE
             itemBinding.groupMemberStatusText.text =

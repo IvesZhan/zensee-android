@@ -26,11 +26,11 @@ enum class GroupJoinRequestStatus(val rawValue: String) {
     }
 }
 
-enum class GroupNotificationType(val rawValue: String, val badgeTitle: String, val affectsGroupHome: Boolean) {
-    JOIN_REQUEST("join_request", "入群申请", false),
-    JOIN_APPROVED("join_approved", "申请通过", true),
-    JOIN_REJECTED("join_rejected", "申请未通过", false),
-    MEMBER_LEFT("member_left", "成员退群", true);
+enum class GroupNotificationType(val rawValue: String, val badgeTitle: String) {
+    JOIN_REQUEST("join_request", "入群申请"),
+    JOIN_APPROVED("join_approved", "申请通过"),
+    JOIN_REJECTED("join_rejected", "申请未通过"),
+    MEMBER_LEFT("member_left", "成员退群");
 
     companion object {
         fun from(rawValue: String?): GroupNotificationType? {
@@ -110,6 +110,15 @@ data class GroupNotificationItem(
 ) {
     val localizedTitle: String
         get() = type.badgeTitle
+
+    val affectsGroupHome: Boolean
+        get() = when (type) {
+            GroupNotificationType.JOIN_REQUEST ->
+                joinRequestStatus == GroupJoinRequestStatus.APPROVED
+            GroupNotificationType.JOIN_APPROVED,
+            GroupNotificationType.MEMBER_LEFT -> true
+            GroupNotificationType.JOIN_REJECTED -> false
+        }
 }
 
 data class GroupDetailSnapshot(

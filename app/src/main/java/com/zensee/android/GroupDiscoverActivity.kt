@@ -28,7 +28,6 @@ class GroupDiscoverActivity : AppCompatActivity() {
     private var isBrowsingMoreGroups = false
     private var shouldRefreshGroupsOnExit = false
     private var shouldRefreshNotificationsOnExit = false
-    private var skipNextShareHomeReload = false
     private val sessionIds: List<String> by lazy {
         intent.getStringArrayListExtra(EXTRA_SESSION_IDS)?.filter { it.isNotBlank() }.orEmpty()
     }
@@ -47,7 +46,7 @@ class GroupDiscoverActivity : AppCompatActivity() {
             setResult(
                 RESULT_OK,
                 Intent().putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, true)
-                    .putExtra(MainActivity.GROUP_RESULT_REFRESH_NOTIFICATIONS, true)
+                    .putExtra(MainActivity.GROUP_RESULT_REFRESH_NOTIFICATIONS, false)
             )
             finish()
         }
@@ -57,10 +56,17 @@ class GroupDiscoverActivity : AppCompatActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         val data = result.data
-        shouldRefreshGroupsOnExit =
-            shouldRefreshGroupsOnExit || (data?.getBooleanExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, false) == true)
-        shouldRefreshNotificationsOnExit =
-            shouldRefreshNotificationsOnExit || (data?.getBooleanExtra(MainActivity.GROUP_RESULT_REFRESH_NOTIFICATIONS, false) == true)
+        val didRefreshGroups = data?.getBooleanExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, false) == true
+        val didRefreshNotifications =
+            data?.getBooleanExtra(MainActivity.GROUP_RESULT_REFRESH_NOTIFICATIONS, false) == true
+        shouldRefreshGroupsOnExit = shouldRefreshGroupsOnExit || didRefreshGroups
+        shouldRefreshNotificationsOnExit = shouldRefreshNotificationsOnExit || didRefreshNotifications
+        if (didRefreshGroups) {
+            AppDataRefreshCoordinator.invalidateGroupData()
+            if (isSharingHomeMode()) {
+                loadMyGroups(force = true)
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -98,11 +104,11 @@ class GroupDiscoverActivity : AppCompatActivity() {
         if (::binding.isInitialized) {
             val query = binding.groupSearchInput.text?.toString().orEmpty()
             if (isSharingHomeMode()) {
-                if (skipNextShareHomeReload) {
-                    skipNextShareHomeReload = false
-                } else {
-                    loadMyGroups()
+                AppDataRefreshCoordinator.cachedMyGroups()?.let { myGroups = it }
+                if (shareMode == GroupShareMode.APPEND_SESSIONS) {
+                    AppDataRefreshCoordinator.cachedSharedGroupIds(sessionIds)?.let { sharedGroupIds = it }
                 }
+                render()
             } else if (query.isNotBlank()) {
                 scheduleSearch(query, delayMs = 0L)
             }
@@ -159,10 +165,11 @@ class GroupDiscoverActivity : AppCompatActivity() {
         binding.groupFooterActionButton.text = actionText
 
         binding.groupSearchResultsContainer.removeAllViews()
+        val allowsShareActions = isSharingHomeMode()
         visibleResults.forEach { group ->
             val rowState = GroupPresentationRules.discoverRowState(
                 group = group,
-                isSharingMode = isSharingMode,
+                isSharingMode = allowsShareActions,
                 shareMode = shareMode,
                 sharedGroupIds = sharedGroupIds
             )
@@ -185,15 +192,16 @@ class GroupDiscoverActivity : AppCompatActivity() {
     }
 
     private fun handleGroupAction(group: GroupModel) {
+        val allowsShareActions = isSharingHomeMode()
         val rowState = GroupPresentationRules.discoverRowState(
             group = group,
-            isSharingMode = isSharingMode,
+            isSharingMode = allowsShareActions,
             shareMode = shareMode,
             sharedGroupIds = sharedGroupIds
         )
         if (!rowState.isEnabled || processingGroupId != null) return
 
-        if (isSharingMode && group.isJoined) {
+        if (allowsShareActions && group.isJoined) {
             processingGroupId = group.id
             render()
             thread(name = "zensee-group-share") {
@@ -203,10 +211,9 @@ class GroupDiscoverActivity : AppCompatActivity() {
                 runOnUiThread {
                     processingGroupId = null
                     result.onSuccess {
-                        shouldRefreshGroupsOnExit = true
-                        shouldRefreshNotificationsOnExit = true
                         if (shareMode == GroupShareMode.APPEND_SESSIONS) {
                             sharedGroupIds = sharedGroupIds + group.id
+                            AppDataRefreshCoordinator.markSharedToGroup(sessionIds, group.id)
                         }
                         render()
                         Toast.makeText(this, getString(R.string.group_share_success), Toast.LENGTH_SHORT).show()
@@ -276,15 +283,36 @@ class GroupDiscoverActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadMyGroups() {
+    private fun loadMyGroups(force: Boolean = false) {
         if (!isSharingMode) return
+        val cachedGroups = if (!force) AppDataRefreshCoordinator.cachedMyGroups() else null
+        val cachedSharedIds = if (!force && shareMode == GroupShareMode.APPEND_SESSIONS) {
+            AppDataRefreshCoordinator.cachedSharedGroupIds(sessionIds)
+        } else {
+            null
+        }
+        val canReuseCachedSnapshot = cachedGroups != null && (
+            shareMode != GroupShareMode.APPEND_SESSIONS || cachedSharedIds != null
+        )
+        if (canReuseCachedSnapshot) {
+            val availableGroups = cachedGroups ?: return
+            myGroups = availableGroups
+            sharedGroupIds = cachedSharedIds.orEmpty()
+            isSearching = false
+            render()
+            return
+        }
+
+        if (cachedGroups != null) {
+            myGroups = cachedGroups
+        }
         isSearching = !isBrowsingMoreGroups
         render()
         thread(name = "zensee-group-share-home") {
             val result = runCatching {
-                val groups = GroupRepository.fetchMyGroups()
+                val groups = cachedGroups ?: GroupRepository.fetchMyGroups()
                 val sharedIds = if (shareMode == GroupShareMode.APPEND_SESSIONS) {
-                    GroupRepository.fetchSharedGroupIds(sessionIds)
+                    cachedSharedIds ?: GroupRepository.fetchSharedGroupIds(sessionIds)
                 } else {
                     emptySet()
                 }
@@ -296,8 +324,10 @@ class GroupDiscoverActivity : AppCompatActivity() {
                     myGroups = groups
                     sharedGroupIds = sharedIds
                 }.onFailure { error ->
-                    myGroups = emptyList()
-                    sharedGroupIds = emptySet()
+                    if (cachedGroups == null) {
+                        myGroups = emptyList()
+                        sharedGroupIds = emptySet()
+                    }
                     Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
                 }
                 render()
@@ -315,7 +345,6 @@ class GroupDiscoverActivity : AppCompatActivity() {
     private fun handlePrimaryAction() {
         when {
             isSharingHomeMode() -> {
-                skipNextShareHomeReload = true
                 browseMoreLauncher.launch(
                     Intent(this, GroupDiscoverActivity::class.java)
                         .putStringArrayListExtra(EXTRA_SESSION_IDS, ArrayList(sessionIds))

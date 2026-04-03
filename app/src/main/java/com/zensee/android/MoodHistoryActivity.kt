@@ -45,13 +45,12 @@ class MoodHistoryActivity : AppCompatActivity() {
             onBackPressedDispatcher.onBackPressed()
         }
         render()
-        refreshRemoteData()
+        refreshRemoteDataIfNeeded()
     }
 
     override fun onResume() {
         super.onResume()
         render()
-        refreshRemoteData()
     }
 
     private fun render() {
@@ -202,8 +201,10 @@ class MoodHistoryActivity : AppCompatActivity() {
         return true
     }
 
-    private fun refreshRemoteData() {
-        if (!AuthManager.state().isAuthenticated) return
+    private fun refreshRemoteDataIfNeeded() {
+        if (!AuthManager.state().isAuthenticated || !AppDataRefreshCoordinator.shouldRefreshZenData()) {
+            return
+        }
         thread(name = "zensee-mood-sync") {
             val refreshed = runCatching { ZenRepository.refreshRemoteData() }.getOrDefault(false)
             if (refreshed) {

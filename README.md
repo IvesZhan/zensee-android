@@ -88,10 +88,10 @@ gradle/wrapper
 - Android 安装包稳定链接：
   `https://raw.githubusercontent.com/IvesZhan/zensee-android/main/downloads/latest/ZenSee-android-latest.apk`
 - 下载页稳定链接：
-  `https://iveszhan.github.io/zensee-legal/download/`
-  `https://iveszhan.github.io/zensee-legal/download/ja/`
-  `https://iveszhan.github.io/zensee-legal/download/zh-hant/`
-  `https://iveszhan.github.io/zensee-legal/download/en/`
+  `https://iveszhan.github.io/zensee-web/download/`
+  `https://iveszhan.github.io/zensee-web/download/ja/`
+  `https://iveszhan.github.io/zensee-web/download/zh-hant/`
+  `https://iveszhan.github.io/zensee-web/download/en/`
 
 每次发布新版 Android 包时，直接运行：
 
@@ -112,6 +112,7 @@ gradle/wrapper
 ## 说明
 
 - 当前项目已接入 Supabase 相关接口与认证流程
+- 三端共享的 Supabase schema、hotfix 与执行说明统一维护在 `../Supabase`
 - 本地发布依赖 `key.properties`、签名 keystore 与 Android SDK
 
 ## License

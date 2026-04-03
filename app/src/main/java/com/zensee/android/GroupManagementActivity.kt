@@ -18,6 +18,7 @@ class GroupManagementActivity : AppCompatActivity() {
     private lateinit var binding: ActivityGroupManagementBinding
     private var snapshot: GroupDetailSnapshot? = null
     private var isDissolving = false
+    private var shouldRefreshGroupsOnExit = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -110,6 +111,11 @@ class GroupManagementActivity : AppCompatActivity() {
                     val result = runCatching { GroupRepository.removeMember(groupId, userId) }
                     runOnUiThread {
                         result.onSuccess {
+                            shouldRefreshGroupsOnExit = true
+                            setResult(
+                                RESULT_OK,
+                                Intent().putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, true)
+                            )
                             loadDetail()
                         }.onFailure { error ->
                             Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
@@ -169,6 +175,16 @@ class GroupManagementActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_DISSOLVED = "extra_group_dissolved"
         const val EXTRA_SNAPSHOT = "extra_group_snapshot"
+    }
+
+    override fun finish() {
+        if (shouldRefreshGroupsOnExit) {
+            setResult(
+                RESULT_OK,
+                Intent().putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, true)
+            )
+        }
+        super.finish()
     }
 
     private fun Intent.snapshotExtra(): GroupDetailSnapshot? {

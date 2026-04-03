@@ -1,5 +1,6 @@
 package com.zensee.android.data
 
+import com.zensee.android.AppDataRefreshCoordinator
 import com.zensee.android.AuthManager
 import com.zensee.android.BuildConfig
 import com.zensee.android.RawHttpResponse
@@ -35,9 +36,11 @@ object GroupRepository {
         val groupIds = memberships.map { it.groupId }
         val groups = fetchGroups(groupIds)
         val roleByGroupId = memberships.associate { it.groupId to it.role }
-        return groups.map { group ->
+        val resolvedGroups = groups.map { group ->
             group.withMembership(roleByGroupId[group.id], hasPendingRequest = false)
         }
+        AppDataRefreshCoordinator.storeMyGroups(resolvedGroups)
+        return resolvedGroups
     }
 
     fun searchGroups(query: String): List<GroupModel> {
@@ -92,6 +95,7 @@ object GroupRepository {
             body = payload,
             preferReturnRepresentation = true
         )
+        AppDataRefreshCoordinator.invalidateGroupData()
         val group = parseGroups(JSONArray(response)).first()
         return group.withMembership(
             role = GroupMembershipRole.OWNER,
@@ -172,6 +176,7 @@ object GroupRepository {
 
     fun approveJoinRequest(requestId: String) {
         updateJoinRequestStatus(requestId, GroupJoinRequestStatus.APPROVED)
+        AppDataRefreshCoordinator.invalidateGroupData()
     }
 
     fun rejectJoinRequest(requestId: String) {
@@ -183,6 +188,7 @@ object GroupRepository {
             path = "/rest/v1/group_memberships?group_id=${encodedEq(groupId)}&user_id=${encodedEq(userId)}",
             method = "DELETE"
         )
+        AppDataRefreshCoordinator.invalidateGroupData()
     }
 
     fun leaveGroup(group: GroupModel) {
@@ -194,6 +200,7 @@ object GroupRepository {
             path = "/rest/v1/group_memberships?group_id=${encodedEq(group.id)}&user_id=${encodedEq(userId)}",
             method = "DELETE"
         )
+        AppDataRefreshCoordinator.invalidateGroupData()
     }
 
     fun dissolveGroup(group: GroupModel) {
@@ -205,6 +212,7 @@ object GroupRepository {
             path = "/rest/v1/groups?id=${encodedEq(group.id)}&owner_id=${encodedEq(userId)}",
             method = "DELETE"
         )
+        AppDataRefreshCoordinator.invalidateGroupData()
     }
 
     fun fetchNotifications(): List<GroupNotificationItem> {
@@ -281,7 +289,7 @@ object GroupRepository {
     fun shareSessions(sessionIds: List<String>, group: GroupModel, mode: GroupShareMode = GroupShareMode.APPEND_SESSIONS) {
         val ids = sessionIds.distinct().filter { it.isNotBlank() }
         if (ids.isEmpty()) {
-            throw GroupException("当前没有可分享的禅修记录。")
+            throw GroupException("当前没有可打卡的禅修记录。")
         }
         val userId = currentUserId()
 
@@ -316,11 +324,13 @@ object GroupRepository {
                 method = "GET"
             )
         )
-        return buildSet {
+        val sharedGroupIds = buildSet {
             for (index in 0 until response.length()) {
                 add(response.getJSONObject(index).getString("group_id"))
             }
         }
+        AppDataRefreshCoordinator.storeSharedGroupIds(sessionIds, sharedGroupIds)
+        return sharedGroupIds
     }
 
     private fun replaceSharedSessions(sessionIds: List<String>, groupId: String, userId: String) {

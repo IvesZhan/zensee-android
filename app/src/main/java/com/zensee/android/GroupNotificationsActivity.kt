@@ -58,6 +58,12 @@ class GroupNotificationsActivity : AppCompatActivity() {
         thread(name = "zensee-group-notifications") {
             val result = runCatching {
                 val notifications = GroupRepository.fetchNotifications()
+                val hasUnreadGroupHomeMutation = notifications.any { item ->
+                    !item.isRead && item.affectsGroupHome
+                }
+                if (hasUnreadGroupHomeMutation) {
+                    shouldRefreshGroupsOnExit = true
+                }
                 if (markAsRead) {
                     val unreadIds = notifications.filter { !it.isRead }.map { it.id }
                     if (unreadIds.isNotEmpty()) {
@@ -105,7 +111,7 @@ class GroupNotificationsActivity : AppCompatActivity() {
         binding.groupNotificationUnreadDot.visibility = if (!item.isRead) View.VISIBLE else View.GONE
         binding.groupNotificationTimeText.text = timestampFormatter.format(item.createdAt.atZone(zoneId))
         binding.groupNotificationTitleText.text = notificationTitle(item)
-        binding.groupNotificationBodyText.text = notificationBody(item)
+        binding.groupNotificationBodyText.text = GroupNotificationTextBuilder.build(this, item)
         binding.groupNotificationActionRow.visibility = View.GONE
         binding.groupNotificationActionLoading.visibility = View.GONE
         binding.groupNotificationStatusText.visibility = View.GONE
@@ -181,21 +187,6 @@ class GroupNotificationsActivity : AppCompatActivity() {
         }
     }
 
-    private fun detailText(item: GroupNotificationItem): String {
-        val actor = item.actorName ?: getString(R.string.group_member_fallback)
-        val group = item.groupName ?: getString(R.string.group_group_fallback)
-        return when (item.type) {
-            GroupNotificationType.JOIN_REQUEST -> when (item.joinRequestStatus) {
-                GroupJoinRequestStatus.APPROVED -> "$actor 申请加入 $group，该申请已通过。"
-                GroupJoinRequestStatus.REJECTED -> "$actor 申请加入 $group，该申请已拒绝。"
-                else -> "$actor 申请加入 $group。"
-            }
-            GroupNotificationType.JOIN_APPROVED -> "$group 的群主已通过你的入群申请。"
-            GroupNotificationType.JOIN_REJECTED -> "$group 的群主暂未通过你的入群申请。"
-            GroupNotificationType.MEMBER_LEFT -> "$actor 已退出 $group。"
-        }
-    }
-
     private fun notificationCategoryTitle(type: GroupNotificationType): String {
         return when (type) {
             GroupNotificationType.JOIN_REQUEST -> "入群申请"
@@ -206,11 +197,6 @@ class GroupNotificationsActivity : AppCompatActivity() {
 
     private fun notificationTitle(item: GroupNotificationItem): String {
         return item.title.trim().ifBlank { item.localizedTitle }
-    }
-
-    private fun notificationBody(item: GroupNotificationItem): String {
-        val body = item.body.trim()
-        return if (body.isNotEmpty()) body else detailText(item)
     }
 
     companion object {

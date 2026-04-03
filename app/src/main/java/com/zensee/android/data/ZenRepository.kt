@@ -1,6 +1,7 @@
 package com.zensee.android.data
 
 import android.content.Context
+import com.zensee.android.AppDataRefreshCoordinator
 import com.zensee.android.AuthManager
 import com.zensee.android.BuildConfig
 import com.zensee.android.RawHttpResponse
@@ -70,6 +71,7 @@ object ZenRepository {
         val moods = CloudSyncApi.fetchMoods(userId, accessToken)
         persistSessions(sessions)
         persistMoods(moods)
+        AppDataRefreshCoordinator.markZenDataFresh()
         return true
     }
 
@@ -187,6 +189,7 @@ object ZenRepository {
         )
         sessions += session
         persistSessions(sessions)
+        AppDataRefreshCoordinator.markZenDataDirty()
         syncSessionIfNeeded(session)
     }
 
@@ -205,6 +208,7 @@ object ZenRepository {
         )
         moods += record
         persistMoods(moods)
+        AppDataRefreshCoordinator.markZenDataDirty()
         syncMoodIfNeeded(record)
     }
 

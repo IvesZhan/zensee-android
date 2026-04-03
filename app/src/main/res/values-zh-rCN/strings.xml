@@ -92,8 +92,8 @@
     <string name="view_latest_online">查看线上最新版本</string>
     <string name="privacy_policy">隐私政策</string>
     <string name="terms_of_service">用户协议</string>
-    <string name="privacy_policy_url">https://iveszhan.github.io/zensee-legal/privacy-policy/</string>
-    <string name="terms_of_service_url">https://iveszhan.github.io/zensee-legal/terms-of-service/</string>
+    <string name="privacy_policy_url">https://iveszhan.github.io/zensee-web/privacy-policy/</string>
+    <string name="terms_of_service_url">https://iveszhan.github.io/zensee-web/terms-of-service/</string>
     <string name="legal_document_load_error">页面加载失败</string>
     <string name="legal_document_load_error_hint">请检查网络后重试</string>
     <string name="privacy_consent_title">隐私与使用说明</string>
@@ -190,7 +190,7 @@
     <string name="group_status_pending">待审核</string>
     <string name="group_joined_badge">已加入</string>
     <string name="group_join_action_short">加入</string>
-    <string name="group_share_action">分享</string>
+    <string name="group_share_action">打卡</string>
     <string name="group_search_hint">搜索群组名称，申请加入</string>
     <string name="group_discover_prompt">输入群组名称进行搜索，或直接新建一个群组。</string>
     <string name="group_create_title">新建群组</string>
@@ -224,10 +224,10 @@
     <string name="group_reject">拒绝</string>
     <string name="group_approved">已通过</string>
     <string name="group_rejected">已拒绝</string>
-    <string name="group_share_title">分享打卡</string>
+    <string name="group_share_title">群组打卡</string>
     <string name="group_share_more">去搜索更多群组</string>
-    <string name="group_share_success">分享成功</string>
-    <string name="group_already_shared">已分享</string>
+    <string name="group_share_success">打卡成功</string>
+    <string name="group_already_shared">已打卡</string>
     <string name="group_management_intro">群主不可移除。建议优先清理长期未打卡成员。</string>
     <string name="group_dissolve_title">解散群组</string>
     <string name="group_dissolve_subtitle">删除全部成员关系与群内数据，且不可撤销。</string>
@@ -277,7 +277,7 @@
     <string name="history_today_quote">境随心转 · 则心安</string>
     <string name="single_session">单次禅修</string>
     <string name="unknown_time_range">时间段未知</string>
-    <string name="share_to_group_pending">分享至群组会在 Group 模块迁移时一并对齐</string>
+    <string name="share_to_group_pending">群组打卡会在 Group 模块迁移时一并对齐</string>
     <string name="meditation_duration_minutes">%1$d 分钟</string>
     <string name="meditation_duration_short">%1$d分</string>
     <string name="meditation_duration_full">%1$d 分钟</string>

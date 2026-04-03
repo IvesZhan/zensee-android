@@ -92,8 +92,8 @@
     <string name="view_latest_online">オンラインの最新バージョンを見る</string>
     <string name="privacy_policy">プライバシーポリシー</string>
     <string name="terms_of_service">利用規約</string>
-    <string name="privacy_policy_url">https://iveszhan.github.io/zensee-legal/privacy-policy/</string>
-    <string name="terms_of_service_url">https://iveszhan.github.io/zensee-legal/terms-of-service/</string>
+    <string name="privacy_policy_url">https://iveszhan.github.io/zensee-web/privacy-policy/</string>
+    <string name="terms_of_service_url">https://iveszhan.github.io/zensee-web/terms-of-service/</string>
     <string name="legal_document_load_error">ページを読み込めませんでした</string>
     <string name="legal_document_load_error_hint">ネットワークを確認して再試行してください</string>
     <string name="privacy_consent_title">プライバシーと利用について</string>
@@ -190,7 +190,7 @@
     <string name="group_status_pending">承認待ち</string>
     <string name="group_joined_badge">参加済み</string>
     <string name="group_join_action_short">参加</string>
-    <string name="group_share_action">共有</string>
+    <string name="group_share_action">チェックイン</string>
     <string name="group_search_hint">グループ名を検索して参加申請</string>
     <string name="group_discover_prompt">グループ名で検索するか、新しくグループを作成してください。</string>
     <string name="group_create_title">グループを新規作成</string>
@@ -224,10 +224,10 @@
     <string name="group_reject">拒否</string>
     <string name="group_approved">承認されました</string>
     <string name="group_rejected">拒否されました</string>
-    <string name="group_share_title">打卡を共有</string>
+    <string name="group_share_title">グループチェックイン</string>
     <string name="group_share_more">ほかのグループを探す</string>
-    <string name="group_share_success">共有しました</string>
-    <string name="group_already_shared">共有済み</string>
+    <string name="group_share_success">チェックインしました</string>
+    <string name="group_already_shared">チェックイン済み</string>
     <string name="group_management_intro">オーナーは削除できません。まず長期間記録のないメンバーの整理をおすすめします。</string>
     <string name="group_dissolve_title">グループを解散</string>
     <string name="group_dissolve_subtitle">すべてのメンバー関係とグループ内データを削除します。取り消しはできません。</string>
@@ -277,7 +277,7 @@
     <string name="history_today_quote">境が心に従えば、心は安らぐ</string>
     <string name="single_session">単回の禅修</string>
     <string name="unknown_time_range">時間帯不明</string>
-    <string name="share_to_group_pending">グループ共有は Group モジュールの移行時にあわせて整えます</string>
+    <string name="share_to_group_pending">グループチェックインは Group モジュールの移行時にあわせて整えます</string>
     <string name="meditation_duration_minutes">%1$d 分</string>
     <string name="meditation_duration_short">%1$d分</string>
     <string name="meditation_duration_full">%1$d 分</string>
