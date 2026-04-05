@@ -174,6 +174,15 @@ object GroupRepository {
         )
     }
 
+    fun joinGroupViaShareLink(groupId: String) {
+        request(
+            path = "/rest/v1/rpc/join_group_via_share_link",
+            method = "POST",
+            body = JSONObject().put("target_group_id", groupId)
+        )
+        AppDataRefreshCoordinator.invalidateGroupData()
+    }
+
     fun approveJoinRequest(requestId: String) {
         updateJoinRequestStatus(requestId, GroupJoinRequestStatus.APPROVED)
         AppDataRefreshCoordinator.invalidateGroupData()

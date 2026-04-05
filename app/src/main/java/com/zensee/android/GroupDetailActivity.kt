@@ -1,12 +1,16 @@
 package com.zensee.android
 
 import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.os.Bundle
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.RelativeSizeSpan
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -34,6 +38,10 @@ class GroupDetailActivity : AppCompatActivity() {
             setResult(
                 RESULT_OK,
                 Intent()
+                    .putExtra(
+                        MainActivity.GROUP_RESULT_REFRESH_GROUPS,
+                        result.data?.getBooleanExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, false) == true
+                    )
                     .putExtra(
                         MainActivity.GROUP_RESULT_REMOVED_GROUP_ID,
                         result.data?.getStringExtra(MainActivity.GROUP_RESULT_REMOVED_GROUP_ID)
@@ -97,6 +105,23 @@ class GroupDetailActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         onBackPressedDispatcher.onBackPressed()
         return true
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.group_detail_menu, menu)
+        menu.findItem(R.id.action_share_group)?.icon?.mutate()?.setTint(getColor(R.color.zs_primary_dark))
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_share_group -> {
+                shareGroupLink()
+                true
+            }
+
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     private fun loadDetail() {
@@ -225,7 +250,8 @@ class GroupDetailActivity : AppCompatActivity() {
                     Toast.makeText(this, getString(R.string.group_leave_success), Toast.LENGTH_SHORT).show()
                     setResult(
                         RESULT_OK,
-                        Intent().putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, true)
+                        Intent()
+                            .putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, true)
                             .putExtra(MainActivity.GROUP_RESULT_REFRESH_NOTIFICATIONS, true)
                     )
                     finish()
@@ -235,6 +261,32 @@ class GroupDetailActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun shareGroupLink() {
+        val group = snapshot?.group ?: return
+        val shareUrl = GroupShareLinkBuilder.shareUrl(group.id)
+        val clipboard = getSystemService(ClipboardManager::class.java)
+        clipboard?.setPrimaryClip(ClipData.newPlainText(group.name, shareUrl))
+        Toast.makeText(this, getString(R.string.group_share_link_copied), Toast.LENGTH_SHORT).show()
+        binding.groupDetailRoot.postDelayed({
+            startActivity(
+                Intent.createChooser(
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(
+                            Intent.EXTRA_SUBJECT,
+                            group.name + " · " + getString(R.string.group_discover_title)
+                        )
+                        putExtra(
+                            Intent.EXTRA_TEXT,
+                            getString(R.string.group_share_message_with_link, group.name, shareUrl)
+                        )
+                    },
+                    getString(R.string.group_share_link_action)
+                )
+            )
+        }, 250L)
     }
 
     private fun ownerName(snapshot: GroupDetailSnapshot): String {

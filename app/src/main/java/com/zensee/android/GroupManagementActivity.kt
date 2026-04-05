@@ -19,6 +19,7 @@ class GroupManagementActivity : AppCompatActivity() {
     private var snapshot: GroupDetailSnapshot? = null
     private var isDissolving = false
     private var shouldRefreshGroupsOnExit = false
+    private var hasExplicitResult = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -112,6 +113,7 @@ class GroupManagementActivity : AppCompatActivity() {
                     runOnUiThread {
                         result.onSuccess {
                             shouldRefreshGroupsOnExit = true
+                            hasExplicitResult = true
                             setResult(
                                 RESULT_OK,
                                 Intent().putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, true)
@@ -156,10 +158,12 @@ class GroupManagementActivity : AppCompatActivity() {
                 isDissolving = false
                 result.onSuccess {
                     Toast.makeText(this, getString(R.string.group_dissolve_success), Toast.LENGTH_SHORT).show()
+                    hasExplicitResult = true
                     setResult(
                         RESULT_OK,
                         Intent()
                             .putExtra(EXTRA_DISSOLVED, true)
+                            .putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, true)
                             .putExtra(MainActivity.GROUP_RESULT_REMOVED_GROUP_ID, group.id)
                             .putExtra(MainActivity.GROUP_RESULT_REFRESH_NOTIFICATIONS, true)
                     )
@@ -178,7 +182,8 @@ class GroupManagementActivity : AppCompatActivity() {
     }
 
     override fun finish() {
-        if (shouldRefreshGroupsOnExit) {
+        if (shouldRefreshGroupsOnExit && !hasExplicitResult) {
+            hasExplicitResult = true
             setResult(
                 RESULT_OK,
                 Intent().putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, true)

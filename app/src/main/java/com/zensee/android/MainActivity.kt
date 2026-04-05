@@ -30,6 +30,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnLayout
+import androidx.core.view.updateLayoutParams
 import androidx.core.content.res.ResourcesCompat
 import com.zensee.android.data.GroupRepository
 import com.zensee.android.data.ZenRepository
@@ -62,6 +63,8 @@ class MainActivity : AppCompatActivity() {
     private var groupErrorMessage: String? = null
     private var hasStartedHomeAnimations = false
     private var privacyConsentDialog: AlertDialog? = null
+    private var pendingSharedGroupId: String? = null
+    private var isJoiningSharedGroup = false
     private lateinit var privacyConsentGate: PrivacyConsentGate
     private lateinit var defaultHeaderTypeface: Typeface
     private val authStateListener: (AuthState) -> Unit = { state -> dispatchAuthStateChanged(state) }
@@ -96,6 +99,17 @@ class MainActivity : AppCompatActivity() {
         handleGroupActivityResult(result.resultCode, result.data)
     }
 
+    private val loginLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val targetGroupId = pendingSharedGroupId
+        if (result.resultCode == RESULT_OK && !targetGroupId.isNullOrBlank()) {
+            joinGroupViaShareLink(targetGroupId)
+        } else if (result.resultCode != RESULT_OK) {
+            pendingSharedGroupId = null
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         SystemBarStyler.apply(this)
@@ -119,6 +133,7 @@ class MainActivity : AppCompatActivity() {
         refreshRemoteData(forceRemoteFetch = true)
         refreshGroupData(force = true)
         showSplash()
+        handleIncomingIntent(intent)
     }
 
     private fun setupBottomNav() {
@@ -712,6 +727,14 @@ class MainActivity : AppCompatActivity() {
         val joinedGroups = groupItems.filter { it.isJoined && !it.isOwner }
         ownedTitle.visibility = if (ownedGroups.isNotEmpty()) View.VISIBLE else View.GONE
         joinedTitle.visibility = if (joinedGroups.isNotEmpty()) View.VISIBLE else View.GONE
+        applyGroupSectionSpacing(
+            ownedTitle = ownedTitle,
+            ownedContainer = ownedContainer,
+            joinedTitle = joinedTitle,
+            joinedContainer = joinedContainer,
+            hasOwnedGroups = ownedGroups.isNotEmpty(),
+            hasJoinedGroups = joinedGroups.isNotEmpty()
+        )
 
         ownedContainer.removeAllViews()
         joinedContainer.removeAllViews()
@@ -727,6 +750,36 @@ class MainActivity : AppCompatActivity() {
             )
         }
         updateHeaderActionButton()
+    }
+
+    private fun applyGroupSectionSpacing(
+        ownedTitle: View,
+        ownedContainer: LinearLayout,
+        joinedTitle: View,
+        joinedContainer: LinearLayout,
+        hasOwnedGroups: Boolean,
+        hasJoinedGroups: Boolean
+    ) {
+        val compactSectionSpacing = 10.dp
+        val standardSectionSpacing = 8.dp
+        val standardContainerSpacing = 14.dp
+
+        ownedTitle.updateLayoutParams<LinearLayout.LayoutParams> {
+            topMargin = 0
+        }
+        ownedContainer.updateLayoutParams<LinearLayout.LayoutParams> {
+            topMargin = if (hasOwnedGroups) compactSectionSpacing else 0
+        }
+        joinedTitle.updateLayoutParams<LinearLayout.LayoutParams> {
+            topMargin = if (hasOwnedGroups && hasJoinedGroups) standardSectionSpacing else 0
+        }
+        joinedContainer.updateLayoutParams<LinearLayout.LayoutParams> {
+            topMargin = when {
+                !hasJoinedGroups -> 0
+                hasOwnedGroups -> standardContainerSpacing
+                else -> compactSectionSpacing
+            }
+        }
     }
 
     private fun updateHeaderActionButton() {
@@ -894,6 +947,12 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIncomingIntent(intent)
+    }
+
     override fun onResume() {
         super.onResume()
         if (::binding.isInitialized) {
@@ -921,12 +980,54 @@ class MainActivity : AppCompatActivity() {
                 groupErrorMessage = null
                 isGroupLoading = false
                 renderGroups()
+                if (shouldRefreshGroups) {
+                    refreshGroupData(force = true)
+                }
                 if (shouldRefreshNotifications) {
                     refreshGroupUnreadCount()
                 }
             }
             shouldRefreshGroups -> refreshGroupData(force = true)
             shouldRefreshNotifications -> refreshGroupUnreadCount()
+        }
+    }
+
+    private fun handleIncomingIntent(intent: Intent?) {
+        val targetGroupId = GroupShareLinkBuilder.groupIdFromJoinIntent(intent) ?: return
+        pendingSharedGroupId = targetGroupId
+        binding.bottomNav.selectedItemId = R.id.tab_group
+        if (!AuthManager.state().isAuthenticated) {
+            loginLauncher.launch(Intent(this, LoginActivity::class.java))
+            return
+        }
+        joinGroupViaShareLink(targetGroupId)
+    }
+
+    private fun joinGroupViaShareLink(groupId: String) {
+        if (isJoiningSharedGroup && pendingSharedGroupId == groupId) return
+        if (!AuthManager.state().isAuthenticated) {
+            pendingSharedGroupId = groupId
+            loginLauncher.launch(Intent(this, LoginActivity::class.java))
+            return
+        }
+
+        isJoiningSharedGroup = true
+        pendingSharedGroupId = groupId
+        binding.bottomNav.selectedItemId = R.id.tab_group
+        thread(name = "zensee-share-group-join") {
+            val result = runCatching { GroupRepository.joinGroupViaShareLink(groupId) }
+            runOnUiThread {
+                isJoiningSharedGroup = false
+                result.onSuccess {
+                    pendingSharedGroupId = null
+                    groupErrorMessage = null
+                    refreshGroupData(force = true)
+                    openGroupDetail(groupId)
+                }.onFailure { error ->
+                    pendingSharedGroupId = null
+                    Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
@@ -1054,9 +1155,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openGroupDetail(group: GroupModel) {
+        openGroupDetail(group.id)
+    }
+
+    private fun openGroupDetail(groupId: String) {
         groupDetailLauncher.launch(
             Intent(this, GroupDetailActivity::class.java)
-                .putExtra(GroupDetailActivity.EXTRA_GROUP_ID, group.id)
+                .putExtra(GroupDetailActivity.EXTRA_GROUP_ID, groupId)
         )
     }
 

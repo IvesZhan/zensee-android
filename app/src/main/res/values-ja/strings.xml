@@ -227,6 +227,7 @@
     <string name="group_share_title">グループチェックイン</string>
     <string name="group_share_more">ほかのグループを探す</string>
     <string name="group_share_success">チェックインしました</string>
+    <string name="group_share_message_with_link">「%1$s」グループに招待します。下の ZenSee リンクを開くと参加できます。\n%2$s</string>
     <string name="group_already_shared">チェックイン済み</string>
     <string name="group_management_intro">オーナーは削除できません。まず長期間記録のないメンバーの整理をおすすめします。</string>
     <string name="group_dissolve_title">グループを解散</string>

@@ -227,6 +227,7 @@
     <string name="group_share_title">群組打卡</string>
     <string name="group_share_more">去搜索更多群組</string>
     <string name="group_share_success">打卡成功</string>
+    <string name="group_share_message_with_link">邀請你加入「%1$s」群組，打開下方 ZenSee 連結即可加入。\n%2$s</string>
     <string name="group_already_shared">已打卡</string>
     <string name="group_management_intro">群主不可移除。建議優先清理長期未打卡成員。</string>
     <string name="group_dissolve_title">解散群組</string>

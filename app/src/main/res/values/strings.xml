@@ -225,8 +225,11 @@
     <string name="group_approved">已通过</string>
     <string name="group_rejected">已拒绝</string>
     <string name="group_share_title">群组打卡</string>
+    <string name="group_share_link_action">分享</string>
     <string name="group_share_more">去搜索更多群组</string>
     <string name="group_share_success">打卡成功</string>
+    <string name="group_share_link_copied">分享链接已复制</string>
+    <string name="group_share_message_with_link">邀请你加入“%1$s”群组，打开下方 ZenSee 链接即可加入。\n%2$s</string>
     <string name="group_already_shared">已打卡</string>
     <string name="group_management_intro">群主不可移除。建议优先清理长期未打卡成员。</string>
     <string name="group_dissolve_title">解散群组</string>
