@@ -53,7 +53,6 @@ rg --hidden -n "supabase\\.co|eyJ|apikey|secret|token|password=|storePassword=|k
 - [ ] `apksigner verify` 成功
 - [ ] `downloads/latest/ZenSee-android-latest.apk` 已更新
 - [ ] `downloads/latest/SHA256.txt` 已更新
-- [ ] 对应版本目录 `downloads/vX.Y.Z/` 已更新
 
 ## 5. 公开仓库检查
 

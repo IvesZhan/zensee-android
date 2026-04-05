@@ -56,8 +56,6 @@ RELEASE_LABEL="$(normalize_release_label "$VERSION_NAME")"
 APK_PATH="$ROOT_DIR/app/build/outputs/apk/release/app-release.apk"
 LATEST_DIR="$ROOT_DIR/downloads/latest"
 LATEST_APK="$LATEST_DIR/ZenSee-android-latest.apk"
-VERSION_DIR="$ROOT_DIR/downloads/v$RELEASE_LABEL"
-VERSIONED_APK="$VERSION_DIR/ZenSee-v$RELEASE_LABEL.apk"
 
 SDK_DIR="$(extract_first_match '^sdk.dir=\(.*\)$' "$ROOT_DIR/local.properties")"
 [[ -n "$SDK_DIR" ]] || fail "Unable to parse sdk.dir from local.properties"
@@ -81,7 +79,7 @@ echo "Building release APK..."
 echo "Verifying APK signature..."
 "$APKSIGNER" verify --verbose "$APK_PATH" >/dev/null
 
-mkdir -p "$LATEST_DIR" "$VERSION_DIR"
+mkdir -p "$LATEST_DIR"
 
 cp "$APK_PATH" "$LATEST_APK"
 write_sha256_file "$LATEST_APK" "$LATEST_DIR/SHA256.txt"
@@ -96,24 +94,13 @@ This directory provides the stable download URL used by the web download page an
 When you publish a new Android release, re-run \`./scripts/publish-release.sh\` and commit the updated files.
 EOF
 
-cp "$APK_PATH" "$VERSIONED_APK"
-write_sha256_file "$VERSIONED_APK" "$VERSION_DIR/SHA256.txt"
-cat > "$VERSION_DIR/README.md" <<EOF
-# ZenSee Android v$RELEASE_LABEL
-
-- APK: \`$(basename "$VERSIONED_APK")\`
-- SHA-256: see \`SHA256.txt\`
-
-This directory keeps the archived APK for release v$RELEASE_LABEL.
-EOF
-
 echo
 echo "Release artifacts updated:"
 echo "  Stable APK:   $LATEST_APK"
-echo "  Versioned APK:$VERSIONED_APK"
+echo "  Release label: v$RELEASE_LABEL"
 echo "  SHA-256:      $(cat "$LATEST_DIR/SHA256.txt")"
 echo
 echo "Next step:"
-echo "  git add downloads/latest downloads/v$RELEASE_LABEL"
+echo "  git add downloads/latest"
 echo "  git commit -m \"Publish Android v$RELEASE_LABEL\""
 echo "  git push"

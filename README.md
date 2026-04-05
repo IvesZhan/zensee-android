@@ -105,9 +105,8 @@ gradle/wrapper
 - 验证 APK 签名
 - 更新 `downloads/latest/ZenSee-android-latest.apk`
 - 更新 `downloads/latest/SHA256.txt`
-- 按当前 `versionName` 同步版本归档目录，例如 `downloads/v1.0.0/`
 
-之后只需要提交并推送 `downloads/latest` 和对应版本目录，Web 下载页和 App 内分享逻辑都不需要修改。
+之后只需要提交并推送 `downloads/latest`，Web 下载页和 App 内分享逻辑都不需要修改。
 
 ## 说明
 

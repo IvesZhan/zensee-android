@@ -68,7 +68,7 @@ Keep the current Android look intentional and native to Android. Do not force iO
 - The stable Android APK URL must remain:
   `https://raw.githubusercontent.com/IvesZhan/zensee-android/main/downloads/latest/ZenSee-android-latest.apk`
 - Web download pages and Android share logic are intentionally wired to stable URLs and locale-specific landing pages. Do not change them casually.
-- When publishing a new Android version, prefer `./scripts/publish-release.sh` so both `downloads/latest/` and `downloads/vX.Y.Z/` stay in sync.
+- When publishing a new Android version, prefer `./scripts/publish-release.sh` so `downloads/latest/` stays in sync with the current release.
 - If versioning or release flow changes, verify that the stable download URL still works and the app share entry still points to the correct localized page.
 
 ### Localization
