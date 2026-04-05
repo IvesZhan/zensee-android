@@ -39,6 +39,7 @@ import com.zensee.android.databinding.DialogPrivacyConsentBinding
 import com.zensee.android.domain.StatsPeriod
 import com.zensee.android.domain.StatsTrendBuilder
 import com.zensee.android.domain.StatsTrendPoint
+import com.zensee.android.model.GroupDetailSnapshot
 import com.zensee.android.model.GroupModel
 import com.zensee.android.widget.StatsTrendChartView
 import com.zensee.android.widget.StatsYearHeatmapView
@@ -65,6 +66,7 @@ class MainActivity : AppCompatActivity() {
     private var privacyConsentDialog: AlertDialog? = null
     private var pendingSharedGroupId: String? = null
     private var isJoiningSharedGroup = false
+    private val pendingGroupRefreshCallbacks = mutableListOf<(Boolean) -> Unit>()
     private lateinit var privacyConsentGate: PrivacyConsentGate
     private lateinit var defaultHeaderTypeface: Typeface
     private val authStateListener: (AuthState) -> Unit = { state -> dispatchAuthStateChanged(state) }
@@ -106,7 +108,7 @@ class MainActivity : AppCompatActivity() {
         if (result.resultCode == RESULT_OK && !targetGroupId.isNullOrBlank()) {
             joinGroupViaShareLink(targetGroupId)
         } else if (result.resultCode != RESULT_OK) {
-            pendingSharedGroupId = null
+            consumePendingSharedGroupFlow()
         }
     }
 
@@ -1000,7 +1002,18 @@ class MainActivity : AppCompatActivity() {
             loginLauncher.launch(Intent(this, LoginActivity::class.java))
             return
         }
-        joinGroupViaShareLink(targetGroupId)
+        refreshGroupData(force = true) { success ->
+            if (!success) {
+                if (pendingSharedGroupId == targetGroupId) {
+                    consumePendingSharedGroupFlow()
+                }
+                return@refreshGroupData
+            }
+
+            if (pendingSharedGroupId == targetGroupId) {
+                joinGroupViaShareLink(targetGroupId)
+            }
+        }
     }
 
     private fun joinGroupViaShareLink(groupId: String) {
@@ -1019,16 +1032,53 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 isJoiningSharedGroup = false
                 result.onSuccess {
-                    pendingSharedGroupId = null
                     groupErrorMessage = null
                     refreshGroupData(force = true)
-                    openGroupDetail(groupId)
+                    prepareJoinedGroupDetailAndOpen(groupId)
                 }.onFailure { error ->
-                    pendingSharedGroupId = null
+                    consumePendingSharedGroupFlow()
                     Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
                 }
             }
         }
+    }
+
+    private fun prepareJoinedGroupDetailAndOpen(groupId: String) {
+        thread(name = "zensee-share-group-detail") {
+            val result = runCatching {
+                loadSharedGroupDetailSnapshot(groupId)
+            }
+            runOnUiThread {
+                result.onSuccess { detailSnapshot ->
+                    consumePendingSharedGroupFlow()
+                    openGroupDetail(detailSnapshot)
+                }.onFailure { error ->
+                    consumePendingSharedGroupFlow()
+                    Toast.makeText(
+                        this,
+                        error.message ?: getString(R.string.group_detail_load_failed),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private fun loadSharedGroupDetailSnapshot(groupId: String): GroupDetailSnapshot {
+        var lastError: Throwable? = null
+
+        repeat(3) { attempt ->
+            try {
+                return GroupRepository.fetchGroupDetail(groupId)
+            } catch (error: Throwable) {
+                lastError = error
+                if (attempt < 2) {
+                    Thread.sleep(180L)
+                }
+            }
+        }
+
+        throw lastError ?: IllegalStateException(getString(R.string.group_detail_load_failed))
     }
 
     private fun refreshGroupUnreadCount() {
@@ -1081,16 +1131,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun refreshGroupData(force: Boolean = false) {
+    private fun refreshGroupData(force: Boolean = false, onComplete: ((Boolean) -> Unit)? = null) {
+        onComplete?.let { pendingGroupRefreshCallbacks += it }
+
         if (!AuthManager.state().isAuthenticated) {
             groupItems = emptyList()
             groupUnreadCount = 0
             groupErrorMessage = null
             isGroupLoading = false
             renderGroups()
+            completePendingGroupRefreshCallbacks(false)
             return
         }
         if (isGroupLoading && !force) return
+        if (isGroupLoading) return
 
         isGroupLoading = true
         groupErrorMessage = null
@@ -1107,6 +1161,7 @@ class MainActivity : AppCompatActivity() {
             }
             runOnUiThread {
                 isGroupLoading = false
+                val loadSucceeded = result.isSuccess
                 result.onSuccess { (groups, unreadCount) ->
                     groupItems = groups
                     groupUnreadCount = unreadCount
@@ -1123,8 +1178,24 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 renderGroups()
+                completePendingGroupRefreshCallbacks(loadSucceeded)
             }
         }
+    }
+
+    private fun completePendingGroupRefreshCallbacks(success: Boolean) {
+        if (pendingGroupRefreshCallbacks.isEmpty()) return
+
+        val callbacks = pendingGroupRefreshCallbacks.toList()
+        pendingGroupRefreshCallbacks.clear()
+        callbacks.forEach { callback ->
+            callback(success)
+        }
+    }
+
+    private fun consumePendingSharedGroupFlow() {
+        pendingSharedGroupId = null
+        isJoiningSharedGroup = false
     }
 
     private fun handleAuthStateChanged(state: AuthState) {
@@ -1133,6 +1204,7 @@ class MainActivity : AppCompatActivity() {
             refreshGroupData(force = true)
             return
         }
+        consumePendingSharedGroupFlow()
         isStatsLoading = false
         groupItems = emptyList()
         groupUnreadCount = 0
@@ -1156,6 +1228,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun openGroupDetail(group: GroupModel) {
         openGroupDetail(group.id)
+    }
+
+    private fun openGroupDetail(snapshot: GroupDetailSnapshot) {
+        groupDetailLauncher.launch(
+            Intent(this, GroupDetailActivity::class.java)
+                .putExtra(GroupDetailActivity.EXTRA_GROUP_ID, snapshot.group.id)
+                .putExtra(GroupDetailActivity.EXTRA_SNAPSHOT, snapshot)
+        )
     }
 
     private fun openGroupDetail(groupId: String) {

@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.text.SpannableStringBuilder
 import android.text.Spanned
@@ -28,6 +29,7 @@ class GroupDetailActivity : AppCompatActivity() {
     private var isLoading = false
     private var isLeavingGroup = false
     private var loadErrorMessage: String? = null
+    private var shouldSkipNextResumeReload = false
 
     private val managementLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -71,6 +73,7 @@ class GroupDetailActivity : AppCompatActivity() {
             return
         }
 
+        snapshot = intent.snapshotExtra()
         binding = ActivityGroupDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.groupDetailToolbar)
@@ -95,10 +98,18 @@ class GroupDetailActivity : AppCompatActivity() {
         binding.groupDetailRetryButton.setOnClickListener {
             loadDetail()
         }
+        if (snapshot != null) {
+            shouldSkipNextResumeReload = true
+            render()
+        }
     }
 
     override fun onResume() {
         super.onResume()
+        if (shouldSkipNextResumeReload) {
+            shouldSkipNextResumeReload = false
+            return
+        }
         loadDetail()
     }
 
@@ -353,5 +364,15 @@ class GroupDetailActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_GROUP_ID = "extra_group_id"
+        const val EXTRA_SNAPSHOT = "extra_group_snapshot"
+    }
+
+    private fun Intent.snapshotExtra(): GroupDetailSnapshot? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getSerializableExtra(EXTRA_SNAPSHOT, GroupDetailSnapshot::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            getSerializableExtra(EXTRA_SNAPSHOT) as? GroupDetailSnapshot
+        }
     }
 }
