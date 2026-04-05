@@ -161,6 +161,11 @@
                 <data
                     android:scheme="https"
                     android:host="iveszhan.github.io"
+                    android:pathPrefix="/zensee" />
+
+                <data
+                    android:scheme="https"
+                    android:host="iveszhan.github.io"
                     android:pathPrefix="/zensee-web/group" />
             </intent-filter>
         </activity>
