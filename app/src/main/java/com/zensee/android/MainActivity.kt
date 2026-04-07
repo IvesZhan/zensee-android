@@ -19,6 +19,8 @@ import android.text.style.RelativeSizeSpan
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
+import android.view.Gravity
+import android.view.WindowManager
 import android.widget.CompoundButton
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
@@ -46,6 +48,7 @@ import com.zensee.android.widget.StatsYearHeatmapView
 import android.view.animation.LinearInterpolator
 import java.text.NumberFormat
 import java.time.LocalDate
+import android.os.Build
 import java.util.Locale
 import kotlin.concurrent.thread
 
@@ -348,14 +351,53 @@ class MainActivity : AppCompatActivity() {
             .apply {
                 setCancelable(false)
                 setCanceledOnTouchOutside(false)
-                window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
                 show()
-                val metrics = resources.displayMetrics
-                window?.setLayout(
-                    (metrics.widthPixels * 0.92f).toInt(),
-                    (metrics.heightPixels * 0.86f).toInt()
-                )
+                dialogBinding.root.post {
+                    applyPrivacyConsentWindowStyle(this, dialogBinding)
+                }
             }
+    }
+
+    private fun applyPrivacyConsentWindowStyle(
+        dialog: AlertDialog,
+        dialogBinding: DialogPrivacyConsentBinding
+    ) {
+        val window = dialog.window ?: return
+        val metrics = resources.displayMetrics
+        val targetWidth = (metrics.widthPixels * 0.9f).toInt()
+        val maxDialogHeight = (metrics.heightPixels * 0.78f).toInt()
+
+        dialogBinding.privacyConsentScroll.updateLayoutParams<LinearLayout.LayoutParams> {
+            height = LinearLayout.LayoutParams.WRAP_CONTENT
+        }
+        dialogBinding.privacyConsentScroll.isFillViewport = false
+
+        window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        window.setGravity(Gravity.CENTER)
+        window.setLayout(targetWidth, WindowManager.LayoutParams.WRAP_CONTENT)
+        window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+            window.attributes = window.attributes.apply {
+                dimAmount = 0.62f
+                blurBehindRadius = 28.dp
+            }
+            window.setBackgroundBlurRadius(36.dp)
+        } else {
+            window.attributes = window.attributes.apply {
+                dimAmount = 0.62f
+            }
+        }
+
+        dialogBinding.root.post {
+            val overflow = dialogBinding.root.height - maxDialogHeight
+            if (overflow > 0) {
+                dialogBinding.privacyConsentScroll.updateLayoutParams<LinearLayout.LayoutParams> {
+                    height = (dialogBinding.privacyConsentScroll.height - overflow).coerceAtLeast(180.dp)
+                }
+            }
+        }
     }
 
     private fun bindPrivacyConsentAgreementText(dialogBinding: DialogPrivacyConsentBinding) {

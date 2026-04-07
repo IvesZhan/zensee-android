@@ -10,12 +10,9 @@ import android.text.style.RelativeSizeSpan
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.zensee.android.data.GroupRepository
 import com.zensee.android.databinding.ActivityGroupDetailBinding
 import com.zensee.android.databinding.ItemGroupMemberBinding
@@ -31,7 +28,6 @@ class GroupDetailActivity : AppCompatActivity() {
     private var isLeavingGroup = false
     private var loadErrorMessage: String? = null
     private var shouldSkipNextResumeReload = false
-    private var shareSheetDialog: BottomSheetDialog? = null
     private var pendingMainlandShareDestination: MainlandShareDestination? = null
     private var pendingSharePayload: GroupSharePayload? = null
 
@@ -123,9 +119,6 @@ class GroupDetailActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        shareSheetDialog?.setOnDismissListener(null)
-        shareSheetDialog?.dismiss()
-        shareSheetDialog = null
         super.onDestroy()
     }
 
@@ -291,7 +284,7 @@ class GroupDetailActivity : AppCompatActivity() {
         GroupShareCoordinator.copyToClipboard(this, group.name, payload)
         Toast.makeText(this, getString(R.string.group_share_link_copied), Toast.LENGTH_SHORT).show()
         binding.groupDetailRoot.postDelayed({
-            if (GroupShareCoordinator.isMainlandChinaRegion(resources)) {
+            if (GroupShareCoordinator.isMainlandChinaRegion(this)) {
                 showMainlandShareSheet(payload)
             } else {
                 GroupShareCoordinator.presentSystemShare(this, payload)
@@ -302,34 +295,17 @@ class GroupDetailActivity : AppCompatActivity() {
     private fun showMainlandShareSheet(payload: GroupSharePayload) {
         pendingSharePayload = payload
         pendingMainlandShareDestination = null
-        shareSheetDialog?.dismiss()
+        (supportFragmentManager.findFragmentByTag(GroupShareBottomSheet.TAG) as? GroupShareBottomSheet)
+            ?.dismissAllowingStateLoss()
 
-        val dialog = BottomSheetDialog(this, R.style.ThemeOverlay_ZenSee_BottomSheetDialog)
-        val contentView = layoutInflater.inflate(R.layout.bottom_sheet_group_share, null)
-        dialog.setContentView(contentView)
-        dialog.behavior.skipCollapsed = true
-        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
-        dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-            ?.setBackgroundResource(android.R.color.transparent)
-
-        contentView.findViewById<View>(R.id.shareWechatAction).setOnClickListener {
-            pendingMainlandShareDestination = MainlandShareDestination.WECHAT
-            dialog.dismiss()
-        }
-        contentView.findViewById<View>(R.id.shareDingTalkAction).setOnClickListener {
-            pendingMainlandShareDestination = MainlandShareDestination.DINGTALK
-            dialog.dismiss()
-        }
-        contentView.findViewById<View>(R.id.shareMoreAction).setOnClickListener {
-            pendingMainlandShareDestination = MainlandShareDestination.MORE
-            dialog.dismiss()
-        }
-        dialog.setOnDismissListener {
-            shareSheetDialog = null
-            executePendingMainlandShareIfNeeded()
-        }
-        shareSheetDialog = dialog
-        dialog.show()
+        GroupShareBottomSheet().apply {
+            onDestinationSelected = { destination ->
+                pendingMainlandShareDestination = destination
+            }
+            onSheetDismissed = {
+                executePendingMainlandShareIfNeeded()
+            }
+        }.show(supportFragmentManager, GroupShareBottomSheet.TAG)
     }
 
     private fun executePendingMainlandShareIfNeeded() {

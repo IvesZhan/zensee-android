@@ -7,9 +7,12 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
+import android.os.LocaleList
+import android.telephony.TelephonyManager
 import android.widget.Toast
 import com.zensee.android.model.GroupModel
 import java.util.Locale
+import java.util.TimeZone
 
 enum class MainlandShareDestination {
     WECHAT,
@@ -26,10 +29,62 @@ data class GroupSharePayload(
 object GroupShareCoordinator {
     private const val WECHAT_PACKAGE = "com.tencent.mm"
     private const val DINGTALK_PACKAGE = "com.alibaba.android.rimet"
+    private val mainlandChinaTimeZones = setOf("Asia/Shanghai", "Asia/Urumqi")
 
-    fun isMainlandChinaRegion(resources: Resources): Boolean {
-        val locale = resources.configuration.locales[0] ?: Locale.getDefault()
-        return locale.country.equals("CN", ignoreCase = true)
+    fun isMainlandChinaRegion(context: Context): Boolean {
+        val resources = context.resources
+        val configuration = resources.configuration
+        if (configuration.mcc == 460) {
+            return true
+        }
+
+        val telephonyManager = context.getSystemService(TelephonyManager::class.java)
+        val telephonyCountries = listOf(
+            telephonyManager?.simCountryIso,
+            telephonyManager?.networkCountryIso
+        )
+            .mapNotNull { country -> country?.trim()?.takeIf { it.isNotEmpty() } }
+            .map { country -> country.lowercase(Locale.ROOT) }
+
+        if ("cn" in telephonyCountries) {
+            return true
+        }
+
+        val telephonyOperators = listOf(
+            telephonyManager?.networkOperator,
+            telephonyManager?.simOperator
+        )
+            .mapNotNull { operator -> operator?.trim()?.takeIf { it.isNotEmpty() } }
+        if (telephonyOperators.any { it.startsWith("460") }) {
+            return true
+        }
+
+        if (TimeZone.getDefault().id in mainlandChinaTimeZones) {
+            return true
+        }
+
+        val locales = linkedSetOf<Locale>()
+        val configurationLocales = configuration.locales
+        for (index in 0 until configurationLocales.size()) {
+            configurationLocales[index]?.let(locales::add)
+        }
+
+        val systemLocales = LocaleList.getDefault()
+        for (index in 0 until systemLocales.size()) {
+            systemLocales[index]?.let(locales::add)
+        }
+
+        locales.add(Locale.getDefault())
+
+        if (locales.any(::isMainlandChinaLocale)) {
+            return true
+        }
+
+        // Final UX fallback: if the device exposes mainland-oriented apps and
+        // the current language stack is Chinese (non-Traditional), prefer the
+        // dedicated mainland share sheet instead of dropping to system share.
+        return locales.any(::isChineseLocale) &&
+            (isPackageInstalled(context, WECHAT_PACKAGE) || isPackageInstalled(context, DINGTALK_PACKAGE))
     }
 
     fun payload(context: Context, group: GroupModel): GroupSharePayload {
@@ -115,5 +170,29 @@ object GroupShareCoordinator {
             putExtra(Intent.EXTRA_SUBJECT, payload.subject)
             putExtra(Intent.EXTRA_TEXT, payload.messageWithLink)
         }
+    }
+
+    private fun isMainlandChinaLocale(locale: Locale): Boolean {
+        val country = locale.country.lowercase(Locale.ROOT)
+        if (country == "cn") {
+            return true
+        }
+        if (country in setOf("tw", "hk", "mo")) {
+            return false
+        }
+
+        val language = locale.language.lowercase(Locale.ROOT)
+        val languageTag = locale.toLanguageTag().lowercase(Locale.ROOT)
+        return language == "zh" && !languageTag.contains("-hant")
+    }
+
+    private fun isChineseLocale(locale: Locale): Boolean {
+        val language = locale.language.lowercase(Locale.ROOT)
+        val languageTag = locale.toLanguageTag().lowercase(Locale.ROOT)
+        return language == "zh" && !languageTag.contains("-hant")
+    }
+
+    private fun isPackageInstalled(context: Context, packageName: String): Boolean {
+        return context.packageManager.getLaunchIntentForPackage(packageName) != null
     }
 }
