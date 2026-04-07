@@ -1,8 +1,6 @@
 package com.zensee.android
 
 import android.app.AlertDialog
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -12,9 +10,12 @@ import android.text.style.RelativeSizeSpan
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.zensee.android.data.GroupRepository
 import com.zensee.android.databinding.ActivityGroupDetailBinding
 import com.zensee.android.databinding.ItemGroupMemberBinding
@@ -30,6 +31,9 @@ class GroupDetailActivity : AppCompatActivity() {
     private var isLeavingGroup = false
     private var loadErrorMessage: String? = null
     private var shouldSkipNextResumeReload = false
+    private var shareSheetDialog: BottomSheetDialog? = null
+    private var pendingMainlandShareDestination: MainlandShareDestination? = null
+    private var pendingSharePayload: GroupSharePayload? = null
 
     private val managementLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -116,6 +120,13 @@ class GroupDetailActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         onBackPressedDispatcher.onBackPressed()
         return true
+    }
+
+    override fun onDestroy() {
+        shareSheetDialog?.setOnDismissListener(null)
+        shareSheetDialog?.dismiss()
+        shareSheetDialog = null
+        super.onDestroy()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -276,28 +287,64 @@ class GroupDetailActivity : AppCompatActivity() {
 
     private fun shareGroupLink() {
         val group = snapshot?.group ?: return
-        val shareUrl = GroupShareLinkBuilder.shareUrl(group.id)
-        val clipboard = getSystemService(ClipboardManager::class.java)
-        clipboard?.setPrimaryClip(ClipData.newPlainText(group.name, shareUrl))
+        val payload = GroupShareCoordinator.payload(this, group)
+        GroupShareCoordinator.copyToClipboard(this, group.name, payload)
         Toast.makeText(this, getString(R.string.group_share_link_copied), Toast.LENGTH_SHORT).show()
         binding.groupDetailRoot.postDelayed({
-            startActivity(
-                Intent.createChooser(
-                    Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(
-                            Intent.EXTRA_SUBJECT,
-                            group.name + " · " + getString(R.string.group_discover_title)
-                        )
-                        putExtra(
-                            Intent.EXTRA_TEXT,
-                            getString(R.string.group_share_message_with_link, group.name, shareUrl)
-                        )
-                    },
-                    getString(R.string.group_share_link_action)
-                )
-            )
-        }, 250L)
+            if (GroupShareCoordinator.isMainlandChinaRegion(resources)) {
+                showMainlandShareSheet(payload)
+            } else {
+                GroupShareCoordinator.presentSystemShare(this, payload)
+            }
+        }, 220L)
+    }
+
+    private fun showMainlandShareSheet(payload: GroupSharePayload) {
+        pendingSharePayload = payload
+        pendingMainlandShareDestination = null
+        shareSheetDialog?.dismiss()
+
+        val dialog = BottomSheetDialog(this, R.style.ThemeOverlay_ZenSee_BottomSheetDialog)
+        val contentView = layoutInflater.inflate(R.layout.bottom_sheet_group_share, null)
+        dialog.setContentView(contentView)
+        dialog.behavior.skipCollapsed = true
+        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+            ?.setBackgroundResource(android.R.color.transparent)
+
+        contentView.findViewById<View>(R.id.shareWechatAction).setOnClickListener {
+            pendingMainlandShareDestination = MainlandShareDestination.WECHAT
+            dialog.dismiss()
+        }
+        contentView.findViewById<View>(R.id.shareDingTalkAction).setOnClickListener {
+            pendingMainlandShareDestination = MainlandShareDestination.DINGTALK
+            dialog.dismiss()
+        }
+        contentView.findViewById<View>(R.id.shareMoreAction).setOnClickListener {
+            pendingMainlandShareDestination = MainlandShareDestination.MORE
+            dialog.dismiss()
+        }
+        dialog.setOnDismissListener {
+            shareSheetDialog = null
+            executePendingMainlandShareIfNeeded()
+        }
+        shareSheetDialog = dialog
+        dialog.show()
+    }
+
+    private fun executePendingMainlandShareIfNeeded() {
+        val destination = pendingMainlandShareDestination
+        val payload = pendingSharePayload
+        pendingMainlandShareDestination = null
+        pendingSharePayload = null
+
+        if (destination == null || payload == null) {
+            return
+        }
+
+        binding.groupDetailRoot.post {
+            GroupShareCoordinator.presentThirdPartyShare(this, destination, payload)
+        }
     }
 
     private fun ownerName(snapshot: GroupDetailSnapshot): String {

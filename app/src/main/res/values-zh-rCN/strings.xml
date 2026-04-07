@@ -225,6 +225,13 @@
     <string name="group_approved">已通过</string>
     <string name="group_rejected">已拒绝</string>
     <string name="group_share_title">群组打卡</string>
+    <string name="group_share_link_copied">群组邀请已复制到剪贴板</string>
+    <string name="group_share_wechat">微信</string>
+    <string name="group_share_dingtalk">钉钉</string>
+    <string name="group_share_wechat_not_installed">请先安装微信后再分享。</string>
+    <string name="group_share_dingtalk_not_installed">请先安装钉钉后再分享。</string>
+    <string name="group_share_wechat_open_failed">未能拉起微信，请稍后重试。</string>
+    <string name="group_share_dingtalk_open_failed">未能拉起钉钉，请稍后重试。</string>
     <string name="group_share_more">去搜索更多群组</string>
     <string name="group_share_success">打卡成功</string>
     <string name="group_already_shared">已打卡</string>

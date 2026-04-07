@@ -228,8 +228,14 @@
     <string name="group_share_link_action">分享</string>
     <string name="group_share_more">去搜索更多群组</string>
     <string name="group_share_success">打卡成功</string>
-    <string name="group_share_link_copied">分享链接已复制</string>
+    <string name="group_share_link_copied">群组邀请已复制到剪贴板</string>
     <string name="group_share_message_with_link">邀请你加入“%1$s”群组，打开下方 ZenSee 链接即可加入。\n%2$s</string>
+    <string name="group_share_wechat">微信</string>
+    <string name="group_share_dingtalk">钉钉</string>
+    <string name="group_share_wechat_not_installed">请先安装微信后再分享。</string>
+    <string name="group_share_dingtalk_not_installed">请先安装钉钉后再分享。</string>
+    <string name="group_share_wechat_open_failed">未能拉起微信，请稍后重试。</string>
+    <string name="group_share_dingtalk_open_failed">未能拉起钉钉，请稍后重试。</string>
     <string name="group_already_shared">已打卡</string>
     <string name="group_management_intro">群主不可移除。建议优先清理长期未打卡成员。</string>
     <string name="group_dissolve_title">解散群组</string>
