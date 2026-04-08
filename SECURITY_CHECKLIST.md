@@ -43,6 +43,7 @@ rg --hidden -n "supabase\\.co|eyJ|apikey|secret|token|password=|storePassword=|k
 
 ## 4. 发布检查
 
+- [ ] 发布前已更新 `app/build.gradle` 中的 `versionCode` 与 `versionName`
 - [ ] 运行：
 
 ```bash
@@ -51,6 +52,7 @@ rg --hidden -n "supabase\\.co|eyJ|apikey|secret|token|password=|storePassword=|k
 
 - [ ] `assembleRelease` 成功
 - [ ] `apksigner verify` 成功
+- [ ] 蒲公英上传成功，可打开发布短链
 - [ ] `downloads/latest/ZenSee-android-latest.apk` 已更新
 - [ ] `downloads/latest/SHA256.txt` 已更新
 

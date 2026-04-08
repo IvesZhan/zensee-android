@@ -4,3 +4,12 @@ keyAlias=YOUR_KEY_ALIAS
 keyPassword=YOUR_KEY_PASSWORD
 supabaseUrl=https://your-project-ref.supabase.co
 supabaseAnonKey=YOUR_SUPABASE_ANON_KEY
+pgyerApiKey=YOUR_PGYER_API_KEY
+pgyerUserKey=YOUR_PGYER_USER_KEY
+# Optional: 1=public, 2=password, 3=restrict
+pgyerInstallType=1
+# Required only when pgyerInstallType=2
+pgyerPassword=
+# Optional
+pgyerChannelShortcut=
+pgyerUpdateDescription=

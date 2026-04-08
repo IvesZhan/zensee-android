@@ -87,11 +87,15 @@ gradle/wrapper
 - 源码托管：GitHub
 - Android 安装包稳定链接：
   `https://raw.githubusercontent.com/IvesZhan/zensee-android/main/downloads/latest/ZenSee-android-latest.apk`
+- 蒲公英下载页：
+  `https://www.pgyer.com/zensee-android`
 - 下载页稳定链接：
   `https://iveszhan.github.io/zensee-web/download/`
   `https://iveszhan.github.io/zensee-web/download/ja/`
   `https://iveszhan.github.io/zensee-web/download/zh-hant/`
   `https://iveszhan.github.io/zensee-web/download/en/`
+
+每次发布前，先修改 [app/build.gradle](/Users/ives/Desktop/Program/ZenSee/ZenSee-Android/app/build.gradle) 里的 `versionCode` 和 `versionName`。
 
 每次发布新版 Android 包时，直接运行：
 
@@ -105,8 +109,33 @@ gradle/wrapper
 - 验证 APK 签名
 - 更新 `downloads/latest/ZenSee-android-latest.apk`
 - 更新 `downloads/latest/SHA256.txt`
+- 自动上传同一个签名 APK 到蒲公英
+- 如果当前版本号和上一次发布一致，脚本会直接失败并提醒先修改 `versionCode` / `versionName`
 
-之后只需要提交并推送 `downloads/latest`，Web 下载页和 App 内分享逻辑都不需要修改。
+之后提交并推送仓库中的发布产物即可；官网稳定下载链接仍然会继续跟随 `downloads/latest` 更新，蒲公英则作为主要分发入口。
+
+如果要启用蒲公英自动上传，可在本地 `key.properties` 或环境变量中提供以下配置：
+
+```properties
+pgyerApiKey=YOUR_PGYER_API_KEY
+pgyerUserKey=YOUR_PGYER_USER_KEY
+pgyerInstallType=1
+pgyerPassword=
+pgyerChannelShortcut=
+pgyerUpdateDescription=
+```
+
+对应环境变量名如下：
+
+- `PGYER_API_KEY`
+- `PGYER_USER_KEY`
+- `PGYER_INSTALL_TYPE`
+- `PGYER_PASSWORD`
+- `PGYER_CHANNEL_SHORTCUT`
+- `PGYER_UPDATE_DESCRIPTION`
+
+当前脚本接的是蒲公英官方上传接口 `https://upload.pgyer.com/apiv1/app/upload`。官方 API 文档：
+[Pgyer API Doc](https://www.pgyer.com/doc/api)
 
 ## 说明
 
