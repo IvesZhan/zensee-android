@@ -29,6 +29,7 @@ data class GroupSharePayload(
 object GroupShareCoordinator {
     private const val WECHAT_PACKAGE = "com.tencent.mm"
     private const val DINGTALK_PACKAGE = "com.alibaba.android.rimet"
+    private const val OFFICIAL_HOME_URL = "https://iveszhan.github.io/zensee-web/"
     private val mainlandChinaTimeZones = setOf("Asia/Shanghai", "Asia/Urumqi")
 
     fun isMainlandChinaRegion(context: Context): Boolean {
@@ -92,6 +93,15 @@ object GroupShareCoordinator {
         val messageWithLink = context.getString(R.string.group_share_message_with_link, group.name, shareUrl)
         return GroupSharePayload(
             subject = group.name + " · " + context.getString(R.string.group_discover_title),
+            messageWithLink = messageWithLink,
+            clipboardText = messageWithLink
+        )
+    }
+
+    fun appPayload(context: Context): GroupSharePayload {
+        val messageWithLink = context.getString(R.string.share_app_message_with_link, OFFICIAL_HOME_URL)
+        return GroupSharePayload(
+            subject = context.getString(R.string.brand_name),
             messageWithLink = messageWithLink,
             clipboardText = messageWithLink
         )

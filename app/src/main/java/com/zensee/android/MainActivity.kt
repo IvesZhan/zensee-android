@@ -69,6 +69,8 @@ class MainActivity : AppCompatActivity() {
     private var privacyConsentDialog: AlertDialog? = null
     private var pendingSharedGroupId: String? = null
     private var isJoiningSharedGroup = false
+    private var pendingAppSharePayload: GroupSharePayload? = null
+    private var pendingAppShareDestination: MainlandShareDestination? = null
     private val pendingGroupRefreshCallbacks = mutableListOf<(Boolean) -> Unit>()
     private lateinit var privacyConsentGate: PrivacyConsentGate
     private lateinit var defaultHeaderTypeface: Typeface
@@ -116,6 +118,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        SettingsManager.initialize(applicationContext)
+        SettingsManager.applyAppearanceMode()
         super.onCreate(savedInstanceState)
         SystemBarStyler.apply(this)
         ZenRepository.initialize(this)
@@ -129,7 +133,7 @@ class MainActivity : AppCompatActivity() {
         defaultHeaderTypeface = binding.headerTitleText.typeface
         applyWindowInsets()
         scheduleSplashBrandingAlignment()
-        setupBottomNav()
+        setupBottomNav(savedInstanceState?.getInt(STATE_SELECTED_TAB_ID) ?: R.id.tab_home)
         setupMeditationConfigResult()
         setupInteractions()
         updateGroupCtaLabels()
@@ -141,32 +145,36 @@ class MainActivity : AppCompatActivity() {
         handleIncomingIntent(intent)
     }
 
-    private fun setupBottomNav() {
+    private fun setupBottomNav(initialTabId: Int) {
         binding.bottomNav.setOnItemSelectedListener { item ->
-            currentTabId = item.itemId
-            binding.tabFlipper.displayedChild = when (item.itemId) {
-                R.id.tab_home -> 0
-                R.id.tab_stats -> 1
-                R.id.tab_group -> 2
-                R.id.tab_profile -> 3
-                else -> 0
-            }
-            binding.headerTitleText.text = when (item.itemId) {
-                R.id.tab_home -> getString(R.string.home_header_title)
-                R.id.tab_stats -> getString(R.string.stats_tab)
-                R.id.tab_group -> getString(R.string.group_tab)
-                R.id.tab_profile -> getString(R.string.profile_tab)
-                else -> getString(R.string.home_header_title)
-            }
-            updateHeaderTitleStyle(item.itemId)
+            selectTab(item.itemId)
             updateHeaderActionButton()
             true
         }
-        binding.bottomNav.selectedItemId = R.id.tab_home
+        binding.bottomNav.selectedItemId = initialTabId
     }
 
     fun openProfileTab() {
         binding.bottomNav.selectedItemId = R.id.tab_profile
+    }
+
+    private fun selectTab(tabId: Int) {
+        currentTabId = tabId
+        binding.tabFlipper.displayedChild = when (tabId) {
+            R.id.tab_home -> 0
+            R.id.tab_stats -> 1
+            R.id.tab_group -> 2
+            R.id.tab_profile -> 3
+            else -> 0
+        }
+        binding.headerTitleText.text = when (tabId) {
+            R.id.tab_home -> getString(R.string.home_header_title)
+            R.id.tab_stats -> getString(R.string.stats_tab)
+            R.id.tab_group -> getString(R.string.group_tab)
+            R.id.tab_profile -> getString(R.string.profile_tab)
+            else -> getString(R.string.home_header_title)
+        }
+        updateHeaderTitleStyle(tabId)
     }
 
     private fun updateHeaderTitleStyle(tabId: Int) {
@@ -237,20 +245,11 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.profileReminderRow).setOnClickListener {
             startActivity(Intent(this, ReminderSettingsActivity::class.java))
         }
+        findViewById<View>(R.id.profileAppearanceRow).setOnClickListener {
+            showAppearanceModeSheet()
+        }
         findViewById<View>(R.id.profileShareRow).setOnClickListener {
-            val shareUrl = downloadPageUrlForLocale()
-            startActivity(
-                Intent.createChooser(
-                    Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(
-                            Intent.EXTRA_TEXT,
-                            getString(R.string.share_app_message_with_link, shareUrl)
-                        )
-                    },
-                    getString(R.string.share_app)
-                )
-            )
+            shareAppLink()
         }
         findViewById<View>(R.id.profileHelpRow).setOnClickListener {
             startActivity(Intent(this, FeedbackActivity::class.java))
@@ -885,6 +884,21 @@ class MainActivity : AppCompatActivity() {
         findViewById<CompoundButton>(R.id.profileSoundSwitch).isChecked = SettingsManager.isSoundEnabled()
         findViewById<TextView>(R.id.profileReminderSubtitleText).text =
             ReminderManager.state().subtitleText(this)
+        findViewById<TextView>(R.id.profileAppearanceSubtitleText).text =
+            getString(SettingsManager.appearanceMode().titleRes)
+    }
+
+    private fun showAppearanceModeSheet() {
+        if (supportFragmentManager.findFragmentByTag(AppearanceModeBottomSheet.TAG) != null) return
+
+        AppearanceModeBottomSheet().apply {
+            onModeSelected = { mode ->
+                if (SettingsManager.appearanceMode() != mode) {
+                    SettingsManager.setAppearanceMode(mode)
+                    renderProfile()
+                }
+            }
+        }.show(supportFragmentManager, AppearanceModeBottomSheet.TAG)
     }
 
     private fun startHomeAnimationsIfNeeded() {
@@ -1006,6 +1020,13 @@ class MainActivity : AppCompatActivity() {
             } else if (AppDataRefreshCoordinator.shouldRefreshZenData()) {
                 refreshRemoteData()
             }
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (::binding.isInitialized) {
+            outState.putInt(STATE_SELECTED_TAB_ID, binding.bottomNav.selectedItemId)
         }
     }
 
@@ -1287,24 +1308,52 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun downloadPageUrlForLocale(): String {
-        val locale = resources.configuration.locales[0] ?: Locale.getDefault()
-        val languageTag = locale.toLanguageTag().lowercase(Locale.ROOT)
-        val language = locale.language.lowercase(Locale.ROOT)
-        val country = locale.country.lowercase(Locale.ROOT)
-        return when {
-            language == "ja" -> "https://iveszhan.github.io/zensee-web/download/ja/"
-            language == "zh" && (
-                languageTag.contains("-hant") ||
-                    country in setOf("tw", "hk", "mo")
-                ) ->
-                "https://iveszhan.github.io/zensee-web/download/zh-hant/"
-            language == "zh" -> "https://iveszhan.github.io/zensee-web/download/"
-            else -> "https://iveszhan.github.io/zensee-web/download/en/"
+    private fun shareAppLink() {
+        val payload = GroupShareCoordinator.appPayload(this)
+        GroupShareCoordinator.copyToClipboard(this, getString(R.string.share_app), payload)
+        Toast.makeText(this, getString(R.string.share_link_copied), Toast.LENGTH_SHORT).show()
+        binding.root.postDelayed({
+            if (GroupShareCoordinator.isMainlandChinaRegion(this)) {
+                showMainlandAppShareSheet(payload)
+            } else {
+                GroupShareCoordinator.presentSystemShare(this, payload)
+            }
+        }, 220L)
+    }
+
+    private fun showMainlandAppShareSheet(payload: GroupSharePayload) {
+        pendingAppSharePayload = payload
+        pendingAppShareDestination = null
+        (supportFragmentManager.findFragmentByTag(GroupShareBottomSheet.TAG) as? GroupShareBottomSheet)
+            ?.dismissAllowingStateLoss()
+
+        GroupShareBottomSheet().apply {
+            onDestinationSelected = { destination ->
+                pendingAppShareDestination = destination
+            }
+            onSheetDismissed = {
+                executePendingMainlandAppShareIfNeeded()
+            }
+        }.show(supportFragmentManager, GroupShareBottomSheet.TAG)
+    }
+
+    private fun executePendingMainlandAppShareIfNeeded() {
+        val destination = pendingAppShareDestination
+        val payload = pendingAppSharePayload
+        pendingAppShareDestination = null
+        pendingAppSharePayload = null
+
+        if (destination == null || payload == null) {
+            return
+        }
+
+        binding.root.post {
+            GroupShareCoordinator.presentThirdPartyShare(this, destination, payload)
         }
     }
 
     companion object {
+        private const val STATE_SELECTED_TAB_ID = "state_selected_tab_id"
         const val GROUP_RESULT_REFRESH_GROUPS = "group_result_refresh_groups"
         const val GROUP_RESULT_REFRESH_NOTIFICATIONS = "group_result_refresh_notifications"
         const val GROUP_RESULT_REMOVED_GROUP_ID = "group_result_removed_group_id"

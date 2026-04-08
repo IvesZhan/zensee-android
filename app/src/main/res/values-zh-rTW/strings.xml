@@ -57,6 +57,10 @@
     <string name="profile_tagline_authenticated">記錄每一次修行</string>
     <string name="sound_toggle">開啟聲音</string>
     <string name="reminder_title">打坐提醒</string>
+    <string name="appearance_mode_title">色彩模式</string>
+    <string name="appearance_mode_light">淺色</string>
+    <string name="appearance_mode_dark">深色</string>
+    <string name="appearance_mode_system">跟隨系統</string>
     <string name="share_app">分享 APP</string>
     <string name="help_feedback">幫助與反饋</string>
     <string name="feedback_intro">如果你在使用過程中遇到任何問題，或有寶貴的意見與建議，歡迎隨時聯繫我們。</string>
@@ -128,7 +132,8 @@
     <string name="delete_account_final_message">此操作將永久清空您所有的禪修記錄，且不可撤銷。確定要繼續嗎？</string>
     <string name="deleting_account">正在註銷賬號</string>
     <string name="deleting_account_subtitle">請稍候，我們正在安全清理你的資料。</string>
-    <string name="share_app_message_with_link">我正在使用 ZenSee 記錄自己的禪修時光，推薦給你。\n%1$s</string>
+    <string name="share_app_message_with_link">我正在用禪·見記錄日常禪修，推薦給你。\n%1$s</string>
+    <string name="share_link_copied">連結已複製到剪貼簿</string>
     <string name="support_email">ives@wangxutech.com</string>
     <string name="reminder_permission_needed">請在系統設定中允許「禪·見」發送通知，才能收到打坐提醒。</string>
     <string name="reminder_exact_alarm_permission_needed">請允許「禪·見」精確安排提醒時間，否則系統可能不會在設定時刻準時發送通知。</string>

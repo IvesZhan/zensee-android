@@ -57,6 +57,10 @@
     <string name="profile_tagline_authenticated">一回一回の修行を記録する</string>
     <string name="sound_toggle">音をオンにする</string>
     <string name="reminder_title">打坐リマインダー</string>
+    <string name="appearance_mode_title">表示モード</string>
+    <string name="appearance_mode_light">ライト</string>
+    <string name="appearance_mode_dark">ダーク</string>
+    <string name="appearance_mode_system">システムに従う</string>
     <string name="share_app">アプリを共有</string>
     <string name="help_feedback">ヘルプとフィードバック</string>
     <string name="feedback_intro">ご利用中に問題が発生した場合や、ご意見・ご提案がありましたら、いつでもお気軽にご連絡ください。</string>
@@ -128,7 +132,8 @@
     <string name="delete_account_final_message">この操作により、すべての禅修記録が完全に削除され、元に戻せません。続行しますか？</string>
     <string name="deleting_account">アカウントを削除しています</string>
     <string name="deleting_account_subtitle">しばらくお待ちください。データを安全に整理しています。</string>
-    <string name="share_app_message_with_link">ZenSee で禅修の時間を記録しています。よかったら使ってみてください。\n%1$s</string>
+    <string name="share_app_message_with_link">禅·見で日々の禅修を記録しています。よかったら使ってみてください。\n%1$s</string>
+    <string name="share_link_copied">リンクをクリップボードにコピーしました</string>
     <string name="support_email">ives@wangxutech.com</string>
     <string name="reminder_permission_needed">打坐リマインダーを受け取るには、システム設定で「禅·見」の通知を許可してください。</string>
     <string name="reminder_exact_alarm_permission_needed">通知を設定時刻どおりに送るため、「禅·見」に正確なアラームの許可を与えてください。</string>
