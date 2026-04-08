@@ -233,7 +233,7 @@
     <string name="group_share_more">ほかのグループを探す</string>
     <string name="group_share_success">チェックインしました</string>
     <string name="group_share_link_copied">グループ招待をクリップボードにコピーしました</string>
-    <string name="group_share_message_with_link">「%1$s」グループに招待します。下の ZenSee リンクを開くと参加できます。\n%2$s</string>
+    <string name="group_share_message_with_link">%2$s\n「%1$s」グループに招待します。この ZenSee リンクを開くと参加できます。</string>
     <string name="group_share_wechat">WeChat</string>
     <string name="group_share_dingtalk">DingTalk</string>
     <string name="group_share_wechat_not_installed">WeChat をインストールしてから共有してください。</string>

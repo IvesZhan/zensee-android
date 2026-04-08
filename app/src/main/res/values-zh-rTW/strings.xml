@@ -233,7 +233,7 @@
     <string name="group_share_more">去搜索更多群組</string>
     <string name="group_share_success">打卡成功</string>
     <string name="group_share_link_copied">群組邀請已複製到剪貼簿</string>
-    <string name="group_share_message_with_link">邀請你加入「%1$s」群組，打開下方 ZenSee 連結即可加入。\n%2$s</string>
+    <string name="group_share_message_with_link">%2$s\n邀請你加入「%1$s」群組，打開這條 ZenSee 連結即可加入。</string>
     <string name="group_share_wechat">微信</string>
     <string name="group_share_dingtalk">釘釘</string>
     <string name="group_share_wechat_not_installed">請先安裝微信後再分享。</string>
