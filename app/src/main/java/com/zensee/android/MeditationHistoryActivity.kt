@@ -107,6 +107,7 @@ class MeditationHistoryActivity : AppCompatActivity() {
             return itemBinding.root
         }
 
+        itemBinding.historyDetailsContainer.addView(createSectionDivider())
         group.sessions.forEachIndexed { index, session ->
             val detailBinding = ItemHistorySessionDetailBinding.inflate(LayoutInflater.from(this), itemBinding.historyDetailsContainer, false)
             detailBinding.sessionTimeRangeText.text = formatTimeRange(session)
@@ -115,12 +116,11 @@ class MeditationHistoryActivity : AppCompatActivity() {
 
             if (index < group.sessions.lastIndex) {
                 itemBinding.historyDetailsContainer.addView(View(this).apply {
-                    setBackgroundColor(getColor(R.color.zs_border))
+                    setBackgroundColor(getColor(R.color.zs_divider))
                     layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1).apply {
                         marginStart = 16.dp
                         marginEnd = 16.dp
                     }
-                    alpha = 0.5f
                 })
             }
         }
@@ -132,6 +132,19 @@ class MeditationHistoryActivity : AppCompatActivity() {
             itemBinding.historyChevronText.text = if (expanded) "⌃" else "⌄"
         }
         return itemBinding.root
+    }
+
+    private fun createSectionDivider(): View {
+        return View(this).apply {
+            setBackgroundColor(getColor(R.color.zs_divider))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                1
+            ).apply {
+                marginStart = 16.dp
+                marginEnd = 16.dp
+            }
+        }
     }
 
     private fun formatTimeRange(session: MeditationSessionSummary): String {

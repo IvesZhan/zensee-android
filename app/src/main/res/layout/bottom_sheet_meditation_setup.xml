@@ -31,7 +31,7 @@
 
                 <TextView
                     android:id="@+id/durationDisplayText"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:includeFontPadding="false"
@@ -41,31 +41,50 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
-
-                <androidx.appcompat.widget.AppCompatImageButton
-                    android:id="@+id/soundPickerButton"
-                    android:layout_width="42dp"
-                    android:layout_height="42dp"
-                    android:background="@drawable/bg_bottom_sheet_icon_button"
-                    android:contentDescription="@string/meditation_sound"
-                    android:padding="10dp"
-                    android:scaleType="centerInside"
-                    android:src="@drawable/ic_meditation_music"
-                    android:tint="@color/zs_bottom_sheet_secondary_icon"
-                    app:layout_constraintBottom_toBottomOf="@id/durationDisplayText"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="@id/durationDisplayText" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <TextView
-                android:id="@+id/selectedSoundText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center"
-                android:includeFontPadding="false"
-                android:textColor="@color/zs_text_subtle"
-                android:textSize="14sp" />
+            <LinearLayout
+                android:id="@+id/soundPickerButton"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_bottom_sheet_secondary_button"
+                android:clickable="true"
+                android:contentDescription="@string/meditation_sound"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingEnd="10dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_meditation_sound_toggle" />
+
+                <TextView
+                    android:id="@+id/selectedSoundText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="6dp"
+                    android:ellipsize="end"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:textColor="@color/zs_primary_dark"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_bottom_sheet_chevron" />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"

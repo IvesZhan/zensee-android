@@ -104,8 +104,7 @@
                 android:layout_height="1dp"
                 android:layout_marginStart="20dp"
                 android:layout_marginEnd="20dp"
-                android:background="@color/zs_border"
-                android:alpha="0.4" />
+                android:background="@color/zs_divider" />
 
             <LinearLayout
                 android:id="@+id/profileReminderRow"
@@ -161,8 +160,7 @@
                 android:layout_height="1dp"
                 android:layout_marginStart="20dp"
                 android:layout_marginEnd="20dp"
-                android:background="@color/zs_border"
-                android:alpha="0.4" />
+                android:background="@color/zs_divider" />
 
             <LinearLayout
                 android:id="@+id/profileAppearanceRow"
@@ -268,8 +266,7 @@
                 android:layout_height="1dp"
                 android:layout_marginStart="20dp"
                 android:layout_marginEnd="20dp"
-                android:background="@color/zs_border"
-                android:alpha="0.4" />
+                android:background="@color/zs_divider" />
 
             <LinearLayout
                 android:id="@+id/profileHelpRow"
@@ -317,8 +314,7 @@
                 android:layout_height="1dp"
                 android:layout_marginStart="20dp"
                 android:layout_marginEnd="20dp"
-                android:background="@color/zs_border"
-                android:alpha="0.4" />
+                android:background="@color/zs_divider" />
 
             <LinearLayout
                 android:id="@+id/profileAboutRow"

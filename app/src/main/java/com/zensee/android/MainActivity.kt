@@ -784,12 +784,22 @@ class MainActivity : AppCompatActivity() {
 
         ownedGroups.forEach { group ->
             ownedContainer.addView(
-                GroupUi.inflateRow(LayoutInflater.from(this), ownedContainer, group) { openGroupDetail(it) }
+                GroupUi.inflateRow(
+                    inflater = LayoutInflater.from(this),
+                    parent = ownedContainer,
+                    group = group,
+                    showJoinedBadge = false
+                ) { openGroupDetail(it) }
             )
         }
         joinedGroups.forEach { group ->
             joinedContainer.addView(
-                GroupUi.inflateRow(LayoutInflater.from(this), joinedContainer, group) { openGroupDetail(it) }
+                GroupUi.inflateRow(
+                    inflater = LayoutInflater.from(this),
+                    parent = joinedContainer,
+                    group = group,
+                    showJoinedBadge = false
+                ) { openGroupDetail(it) }
             )
         }
         updateHeaderActionButton()

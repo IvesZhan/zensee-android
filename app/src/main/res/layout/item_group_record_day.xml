@@ -2,16 +2,17 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp"
+    android:layout_marginBottom="12dp"
     android:background="@drawable/bg_home_card"
     android:orientation="vertical">
 
     <LinearLayout
-        android:id="@+id/historyGroupHeader"
+        android:id="@+id/groupRecordDayHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:clickable="true"
         android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="16dp"
@@ -19,17 +20,31 @@
         android:paddingEnd="16dp"
         android:paddingBottom="14dp">
 
-        <TextView
-            android:id="@+id/historyDateText"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textColor="@color/zs_primary_dark"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/groupRecordDayDateText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/zs_primary_dark"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/groupRecordDayProgressText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/zs_text_subtle"
+                android:textSize="12sp" />
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/historyTotalText"
+            android:id="@+id/groupRecordDayTotalMinutesText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_capsule_tint"
@@ -38,10 +53,11 @@
             android:paddingEnd="10dp"
             android:paddingBottom="4dp"
             android:textColor="@color/zs_gold"
-            android:textSize="11sp" />
+            android:textSize="11sp"
+            android:visibility="gone" />
 
         <TextView
-            android:id="@+id/historyChevronText"
+            android:id="@+id/groupRecordDayChevronText"
             android:layout_width="20dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
@@ -52,7 +68,7 @@
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/historyDetailsContainer"
+        android:id="@+id/groupRecordDayDetailsContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"

@@ -36,12 +36,13 @@ object GroupUi {
         parent: ViewGroup,
         group: GroupModel,
         joinedBadgeOverrideText: String? = null,
+        showJoinedBadge: Boolean = true,
         actionBadge: GroupRowActionBadgeUi? = null,
         enabled: Boolean = true,
         onClick: (GroupModel) -> Unit
     ): View {
         val binding = ItemGroupRowBinding.inflate(inflater, parent, false)
-        bindRow(binding, group, joinedBadgeOverrideText, actionBadge)
+        bindRow(binding, group, joinedBadgeOverrideText, showJoinedBadge, actionBadge)
         binding.root.isEnabled = enabled
         binding.root.isClickable = enabled
         binding.root.alpha = 1f
@@ -55,6 +56,7 @@ object GroupUi {
         binding: ItemGroupRowBinding,
         group: GroupModel,
         joinedBadgeOverrideText: String? = null,
+        showJoinedBadge: Boolean = true,
         actionBadge: GroupRowActionBadgeUi? = null
     ) {
         binding.groupAvatarText.text = group.name.trim().take(1).ifBlank { "禅" }
@@ -94,7 +96,7 @@ object GroupUi {
             binding.groupPendingBadge.visibility = if (group.hasPendingRequest && !group.isJoined) View.VISIBLE else View.GONE
             binding.groupJoinedBadge.text =
                 joinedBadgeOverrideText ?: binding.root.context.getString(R.string.group_joined_badge)
-            binding.groupJoinedBadge.visibility = if (group.isJoined && !group.isOwner) View.VISIBLE else View.GONE
+            binding.groupJoinedBadge.visibility = if (showJoinedBadge && group.isJoined && !group.isOwner) View.VISIBLE else View.GONE
         }
     }
 

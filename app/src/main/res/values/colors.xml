@@ -17,6 +17,7 @@
     <color name="zs_link_gold">#B6893E</color>
     <color name="zs_link_gold_pressed">#9D7230</color>
     <color name="zs_border">#DCDAD5</color>
+    <color name="zs_divider">#66DCDAD5</color>
     <color name="zs_nav_selected_bg">#E9E4DC</color>
     <color name="zs_ring">#1A8E8071</color>
     <color name="zs_ring_strong">#268E8071</color>
@@ -27,6 +28,7 @@
     <color name="zs_capsule_surface_fill">#E6FFFFFF</color>
     <color name="zs_capsule_surface_stroke">#22FFFFFF</color>
     <color name="zs_capsule_tint_fill">#148E8071</color>
+    <color name="zs_group_record_missed_fill">#0D8E8071</color>
     <color name="zs_group_action_primary_stroke">#388E8071</color>
     <color name="zs_warning_button_fill">#14A96F52</color>
     <color name="zs_warning_button_stroke">#52A96F52</color>

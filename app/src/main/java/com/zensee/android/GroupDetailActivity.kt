@@ -17,6 +17,7 @@ import com.zensee.android.data.GroupRepository
 import com.zensee.android.databinding.ActivityGroupDetailBinding
 import com.zensee.android.databinding.ItemGroupMemberBinding
 import com.zensee.android.model.GroupDetailSnapshot
+import com.zensee.android.model.GroupDetailMemberOrdering
 import com.zensee.android.model.GroupMemberStatus
 import com.zensee.android.model.GroupMembershipRole
 import kotlin.concurrent.thread
@@ -94,6 +95,9 @@ class GroupDetailActivity : AppCompatActivity() {
                     .putExtra(EXTRA_GROUP_ID, groupId)
                     .putExtra(GroupManagementActivity.EXTRA_SNAPSHOT, currentSnapshot)
             )
+        }
+        binding.groupRecordCard.setOnClickListener {
+            openGroupRecord()
         }
         binding.groupDetailRetryButton.setOnClickListener {
             loadDetail()
@@ -189,6 +193,7 @@ class GroupDetailActivity : AppCompatActivity() {
         binding.groupMembersCountText.text = buildPeopleCountText(current.members.size)
         binding.groupMeditatedCountText.text =
             buildPeopleCountText(current.members.count { it.didCheckInToday })
+        binding.groupRecordSummaryText.text = recordSummaryText(current)
         binding.groupManageButton.visibility =
             if (current.currentUserRole == GroupMembershipRole.OWNER) android.view.View.VISIBLE else android.view.View.GONE
         binding.groupManagementNoteText.visibility =
@@ -333,26 +338,12 @@ class GroupDetailActivity : AppCompatActivity() {
         currentUserId: String?,
         didCheckInToday: Boolean
     ): List<GroupMemberStatus> {
-        return members
-            .filter { it.didCheckInToday == didCheckInToday }
-            .sortedWith { lhs, rhs ->
-                when {
-                    lhs.userId == currentUserId || rhs.userId == currentUserId ->
-                        if (lhs.userId == currentUserId) -1 else 1
-
-                    memberDisplayInstant(lhs) != memberDisplayInstant(rhs) ->
-                        memberDisplayInstant(rhs).compareTo(memberDisplayInstant(lhs))
-
-                    lhs.joinedAt != rhs.joinedAt ->
-                        rhs.joinedAt.compareTo(lhs.joinedAt)
-
-                    else -> lhs.userId.compareTo(rhs.userId)
-                }
-            }
+        return GroupDetailMemberOrdering.members(
+            from = members,
+            currentUserId = currentUserId,
+            didCheckInToday = didCheckInToday
+        )
     }
-
-    private fun memberDisplayInstant(member: GroupMemberStatus) =
-        member.lastSharedAt ?: member.joinedAt
 
     private fun buildPeopleCountText(count: Int): CharSequence {
         val countText = count.toString()
@@ -383,6 +374,27 @@ class GroupDetailActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    private fun recordSummaryText(snapshot: GroupDetailSnapshot): String {
+        val yesterdaySummary = snapshot.yesterdaySummary
+        if (yesterdaySummary != null) {
+            return getString(
+                R.string.group_record_entry_summary,
+                yesterdaySummary.checkedInCount,
+                yesterdaySummary.eligibleMemberCount
+            )
+        }
+        return getString(R.string.group_record_entry_empty)
+    }
+
+    private fun openGroupRecord() {
+        val currentSnapshot = snapshot ?: return
+        startActivity(
+            Intent(this, GroupRecordActivity::class.java)
+                .putExtra(GroupRecordActivity.EXTRA_GROUP_ID, currentSnapshot.group.id)
+                .putExtra(GroupRecordActivity.EXTRA_GROUP_NAME, currentSnapshot.group.name)
+        )
     }
 
     companion object {

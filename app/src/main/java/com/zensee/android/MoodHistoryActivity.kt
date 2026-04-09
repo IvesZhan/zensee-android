@@ -2,8 +2,6 @@ package com.zensee.android
 
 import android.app.AlertDialog
 import android.content.Intent
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -76,9 +74,8 @@ class MoodHistoryActivity : AppCompatActivity() {
                 bottomMargin = 12.dp
             }
             addView(View(context).apply {
-                setBackgroundColor(getColor(R.color.zs_border))
+                setBackgroundColor(getColor(R.color.zs_divider))
                 layoutParams = LinearLayout.LayoutParams(0, 1, 1f)
-                alpha = 0.8f
             })
             addView(TextView(context).apply {
                 text = label
@@ -88,9 +85,8 @@ class MoodHistoryActivity : AppCompatActivity() {
                 setPadding(12.dp, 0, 12.dp, 0)
             })
             addView(View(context).apply {
-                setBackgroundColor(getColor(R.color.zs_border))
+                setBackgroundColor(getColor(R.color.zs_divider))
                 layoutParams = LinearLayout.LayoutParams(0, 1, 1f)
-                alpha = 0.8f
             })
         }
     }
@@ -116,7 +112,7 @@ class MoodHistoryActivity : AppCompatActivity() {
 
                 if (index < group.records.lastIndex) {
                     addView(View(context).apply {
-                        setBackgroundColor(getColor(R.color.zs_border))
+                        setBackgroundColor(getColor(R.color.zs_divider))
                         layoutParams = LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.MATCH_PARENT,
                             1
@@ -124,7 +120,6 @@ class MoodHistoryActivity : AppCompatActivity() {
                             marginStart = 20.dp
                             marginEnd = 20.dp
                         }
-                        alpha = 0.45f
                     })
                 }
             }
@@ -143,9 +138,9 @@ class MoodHistoryActivity : AppCompatActivity() {
             .setView(dialogBinding.root)
             .create()
 
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         dialogBinding.moodDialogCloseButton.setOnClickListener { dialog.dismiss() }
         dialog.show()
+        PopupDialogStyler.apply(dialog)
     }
 
     private fun sectionLabel(group: MoodDayGroup): String {

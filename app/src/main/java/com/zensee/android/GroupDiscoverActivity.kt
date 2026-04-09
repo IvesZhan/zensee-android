@@ -77,7 +77,9 @@ class GroupDiscoverActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(binding.groupDiscoverToolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = getString(if (isSharingMode) R.string.group_share_title else R.string.group_discover_title)
+        supportActionBar?.title = getString(
+            if (isSharingHomeMode()) R.string.group_share_title else R.string.group_discover_title
+        )
         binding.groupDiscoverToolbar.setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }

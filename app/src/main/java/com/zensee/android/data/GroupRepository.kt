@@ -6,12 +6,14 @@ import com.zensee.android.BuildConfig
 import com.zensee.android.RawHttpResponse
 import com.zensee.android.SessionAwareRequestExecutor
 import com.zensee.android.model.GroupDetailSnapshot
+import com.zensee.android.model.GroupDailyRollup
 import com.zensee.android.model.GroupJoinRequestStatus
 import com.zensee.android.model.GroupMemberStatus
 import com.zensee.android.model.GroupMembershipRole
 import com.zensee.android.model.GroupModel
 import com.zensee.android.model.GroupNotificationItem
 import com.zensee.android.model.GroupNotificationType
+import com.zensee.android.model.GroupRecordSummaryBuilder
 import com.zensee.android.model.GroupShareMode
 import org.json.JSONArray
 import org.json.JSONObject
@@ -115,12 +117,19 @@ object GroupRepository {
 
         val memberIds = memberships.map { it.userId }
         val profileById = fetchProfiles(memberIds)
-        val today = LocalDate.now().toString()
-        val rollupByUserId = fetchRollups(groupId, today)
+        val today = LocalDate.now()
+        val yesterday = today.minusDays(1)
+        val rollups = fetchRollups(groupId, listOf(today, yesterday))
+        val todayRollupByUserId = rollups
+            .filter { it.sessionDate == today }
+            .associateBy { it.userId }
+        val yesterdayRollupByUserId = rollups
+            .filter { it.sessionDate == yesterday }
+            .associateBy { it.userId }
         val localTodayMinutes = ZenRepository.getStatsSnapshot().heatmapByDate[LocalDate.now()] ?: 0
 
         val members = memberships.map { membership ->
-            val rollup = rollupByUserId[membership.userId]
+            val rollup = todayRollupByUserId[membership.userId]
             val isCurrentUser = membership.userId == userId
             var didCheckInToday = rollup != null
             var totalMinutesToday = rollup?.totalMinutes ?: 0
@@ -152,7 +161,27 @@ object GroupRepository {
             group = group.withMembership(currentRole),
             currentUserId = userId,
             currentUserRole = currentRole,
-            members = members
+            members = members,
+            yesterdaySummary = GroupRecordSummaryBuilder.daySummary(
+                date = yesterday,
+                members = members,
+                currentUserId = userId,
+                rollupsByUser = yesterdayRollupByUserId
+            )
+        )
+    }
+
+    fun fetchGroupDailyRollups(groupId: String): List<GroupDailyRollup> {
+        return parseGroupDailyRollups(
+            JSONArray(
+                request(
+                    path = "/rest/v1/group_member_daily_rollups" +
+                        "?select=group_id,user_id,session_date,total_minutes,last_shared_at" +
+                        "&group_id=${encodedEq(groupId)}" +
+                        "&order=session_date.desc",
+                    method = "GET"
+                )
+            )
         )
     }
 
@@ -298,7 +327,7 @@ object GroupRepository {
     fun shareSessions(sessionIds: List<String>, group: GroupModel, mode: GroupShareMode = GroupShareMode.APPEND_SESSIONS) {
         val ids = sessionIds.distinct().filter { it.isNotBlank() }
         if (ids.isEmpty()) {
-            throw GroupException("当前没有可打卡的禅修记录。")
+            throw GroupException("当前没有可分享的禅修记录。")
         }
         val userId = currentUserId()
 
@@ -472,23 +501,30 @@ object GroupRepository {
         }
     }
 
-    private fun fetchRollups(groupId: String, sessionDate: String): Map<String, GroupRollupRecord> {
-        val response = JSONArray(
-            request(
-                path = "/rest/v1/group_member_daily_rollups" +
-                    "?select=group_id,user_id,session_date,total_minutes,last_shared_at" +
-                    "&group_id=${encodedEq(groupId)}" +
-                    "&session_date=${encodedEq(sessionDate)}",
-                method = "GET"
+    private fun fetchRollups(groupId: String, sessionDates: List<LocalDate>): List<GroupDailyRollup> {
+        val targetDates = sessionDates.distinct().map(LocalDate::toString)
+        if (targetDates.isEmpty()) return emptyList()
+        return parseGroupDailyRollups(
+            JSONArray(
+                request(
+                    path = "/rest/v1/group_member_daily_rollups" +
+                        "?select=group_id,user_id,session_date,total_minutes,last_shared_at" +
+                        "&group_id=${encodedEq(groupId)}" +
+                        "&session_date=${encodedIn(targetDates)}",
+                    method = "GET"
+                )
             )
         )
-        return buildMap {
+    }
+
+    private fun parseGroupDailyRollups(response: JSONArray): List<GroupDailyRollup> {
+        return buildList {
             for (index in 0 until response.length()) {
                 val item = response.getJSONObject(index)
-                put(
-                    item.getString("user_id"),
-                    GroupRollupRecord(
+                add(
+                    GroupDailyRollup(
                         userId = item.getString("user_id"),
+                        sessionDate = LocalDate.parse(item.getString("session_date")),
                         totalMinutes = item.optInt("total_minutes"),
                         lastSharedAt = parseNullableInstant(item.optString("last_shared_at"))
                     )
@@ -733,12 +769,6 @@ object GroupRepository {
         val userId: String,
         val role: GroupMembershipRole,
         val createdAt: Instant
-    )
-
-    private data class GroupRollupRecord(
-        val userId: String,
-        val totalMinutes: Int,
-        val lastSharedAt: Instant?
     )
 
     class GroupException(message: String) : IllegalStateException(message)
