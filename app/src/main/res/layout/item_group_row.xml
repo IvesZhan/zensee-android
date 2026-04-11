@@ -18,15 +18,38 @@
             android:orientation="horizontal"
             android:padding="16dp">
 
-            <TextView
-                android:id="@+id/groupAvatarText"
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:background="@drawable/bg_group_avatar"
-                android:gravity="center"
-                android:textColor="@color/zs_primary_dark"
-                android:textSize="24sp"
-                android:textStyle="bold" />
+            <FrameLayout
+                android:layout_width="68dp"
+                android:layout_height="68dp">
+
+                <TextView
+                    android:id="@+id/groupAvatarText"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:layout_gravity="top|start"
+                    android:background="@drawable/bg_group_avatar"
+                    android:gravity="center"
+                    android:textColor="@color/zs_primary_dark"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <FrameLayout
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="bottom|end"
+                    android:background="@drawable/bg_group_avatar_overlay_inner"
+                    android:importantForAccessibility="no"
+                    >
+
+                    <ImageView
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:layout_gravity="center"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_tab_group"
+                        android:tint="@color/zs_primary" />
+                </FrameLayout>
+            </FrameLayout>
 
             <LinearLayout
                 android:layout_width="0dp"

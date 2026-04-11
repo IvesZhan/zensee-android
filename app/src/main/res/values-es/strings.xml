@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_tagline_authenticated">Las aguas tranquilas son profundas, fluyendo día y noche.</string>
+    <string name="uid_copied_to_clipboard">UID copiado al portapapeles</string>
+</resources>

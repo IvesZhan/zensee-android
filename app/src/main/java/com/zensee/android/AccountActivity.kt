@@ -1,5 +1,7 @@
 package com.zensee.android
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.os.Bundle
 import android.view.ViewGroup.MarginLayoutParams
 import android.widget.Toast
@@ -13,6 +15,10 @@ import com.zensee.android.databinding.ActivityAccountBinding
 import kotlin.concurrent.thread
 
 class AccountActivity : AppCompatActivity() {
+    private companion object {
+        private const val UID_PLACEHOLDER = "--------"
+    }
+
     private lateinit var binding: ActivityAccountBinding
     private lateinit var saveNicknameLoadingButton: LoadingButtonController
     private lateinit var updatePasswordLoadingButton: LoadingButtonController
@@ -46,8 +52,10 @@ class AccountActivity : AppCompatActivity() {
         }
         applyWindowInsets()
 
-        originalNickname = AuthManager.state().nickname.ifBlank { AuthManager.state().emailPrefix }
+        originalNickname = AuthManager.state().nickname.ifBlank { AuthManager.state().displayName }
+        bindUid(AuthManager.state().uid)
         binding.nicknameInput.setText(originalNickname)
+        binding.copyUidButton.setOnClickListener { copyUid() }
         binding.saveNicknameButton.setOnClickListener { saveNickname() }
         binding.updatePasswordButton.setOnClickListener { updatePassword() }
         binding.signOutButton.setOnClickListener { confirmSignOut() }
@@ -55,7 +63,9 @@ class AccountActivity : AppCompatActivity() {
         binding.nicknameInput.doAfterTextChanged { updateActionStates() }
         binding.newPasswordInput.doAfterTextChanged { updateActionStates() }
         binding.confirmPasswordInput.doAfterTextChanged { updateActionStates() }
+        applyPasswordCredentialVisibility()
         updateActionStates()
+        loadLatestProfile()
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -74,6 +84,7 @@ class AccountActivity : AppCompatActivity() {
                 runOnUiThread {
                     originalNickname = nickname
                     setLoading(false)
+                    bindUid(AuthManager.state().uid)
                     binding.accountMessageText.isVisible = true
                     binding.accountMessageText.setTextColor(getColor(R.color.zs_primary))
                     binding.accountMessageText.text = getString(R.string.nickname_saved)
@@ -93,6 +104,14 @@ class AccountActivity : AppCompatActivity() {
     }
 
     private fun updatePassword() {
+        if (!AuthManager.state().supportsPasswordCredentials) {
+            Toast.makeText(
+                this,
+                getString(R.string.social_password_unavailable_title),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
         val newPassword = binding.newPasswordInput.text?.toString().orEmpty()
         val confirm = binding.confirmPasswordInput.text?.toString().orEmpty()
         if (!canSavePassword()) return
@@ -199,17 +218,21 @@ class AccountActivity : AppCompatActivity() {
         saveNicknameLoadingButton.setLoading(loading && activeButton === saveNicknameLoadingButton)
         updatePasswordLoadingButton.setLoading(loading && activeButton === updatePasswordLoadingButton)
         val canInteract = !loading && !isDeletingAccount
+        val hasUid = binding.copyUidButton.tag?.toString().orEmpty().isNotBlank()
         binding.saveNicknameButton.isEnabled = canInteract && canSaveNickname()
         binding.updatePasswordButton.isEnabled = canInteract && canSavePassword()
         binding.signOutButton.isEnabled = canInteract
         binding.deleteAccountButton.isEnabled = canInteract
+        binding.copyUidButton.isEnabled = canInteract && hasUid
+        binding.copyUidButton.alpha = if (binding.copyUidButton.isEnabled) 0.72f else 0.32f
         binding.nicknameInput.isEnabled = canInteract
-        binding.newPasswordInput.isEnabled = canInteract
-        binding.confirmPasswordInput.isEnabled = canInteract
+        binding.newPasswordInput.isEnabled = canInteract && AuthManager.state().supportsPasswordCredentials
+        binding.confirmPasswordInput.isEnabled = canInteract && AuthManager.state().supportsPasswordCredentials
     }
 
     private fun updateActionStates() {
         if (isDeletingAccount) return
+        applyPasswordCredentialVisibility()
         binding.saveNicknameButton.isEnabled = canSaveNickname()
         binding.updatePasswordButton.isEnabled = canSavePassword()
         binding.passwordMismatchText.isVisible = hasPasswordMismatch()
@@ -221,15 +244,27 @@ class AccountActivity : AppCompatActivity() {
     }
 
     private fun canSavePassword(): Boolean {
+        if (!AuthManager.state().supportsPasswordCredentials) {
+            return false
+        }
         val newPassword = binding.newPasswordInput.text?.toString().orEmpty()
         val confirm = binding.confirmPasswordInput.text?.toString().orEmpty()
         return newPassword.length >= 6 && newPassword == confirm
     }
 
     private fun hasPasswordMismatch(): Boolean {
+        if (!AuthManager.state().supportsPasswordCredentials) {
+            return false
+        }
         val newPassword = binding.newPasswordInput.text?.toString().orEmpty()
         val confirm = binding.confirmPasswordInput.text?.toString().orEmpty()
         return confirm.isNotEmpty() && newPassword != confirm
+    }
+
+    private fun applyPasswordCredentialVisibility() {
+        val supportsPasswordCredentials = AuthManager.state().supportsPasswordCredentials
+        binding.passwordCredentialsSection.isVisible = supportsPasswordCredentials
+        binding.socialPasswordNoticeSection.isVisible = !supportsPasswordCredentials
     }
 
     private fun showDeleteLoading(loading: Boolean) {
@@ -239,6 +274,49 @@ class AccountActivity : AppCompatActivity() {
         if (!loading) {
             updateActionStates()
         }
+    }
+
+    private fun loadLatestProfile() {
+        thread {
+            try {
+                val state = AuthManager.refreshProfile()
+                runOnUiThread {
+                    if (isFinishing || isDestroyed) {
+                        return@runOnUiThread
+                    }
+                    bindUid(state.uid)
+                    val resolvedNickname = state.nickname.ifBlank { state.displayName }
+                    val currentInput = binding.nicknameInput.text?.toString().orEmpty()
+                    if (currentInput == originalNickname &&
+                        resolvedNickname.isNotBlank() &&
+                        resolvedNickname != originalNickname
+                    ) {
+                        originalNickname = resolvedNickname
+                        binding.nicknameInput.setText(resolvedNickname)
+                    }
+                    updateActionStates()
+                }
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun bindUid(uid: String?) {
+        val normalized = uid?.trim().orEmpty()
+        binding.uidValueText.text = "UID ${normalized.ifBlank { UID_PLACEHOLDER }}"
+        binding.copyUidButton.tag = normalized
+        binding.copyUidButton.isEnabled = !isDeletingAccount && normalized.isNotBlank()
+        binding.copyUidButton.alpha = if (normalized.isBlank()) 0.32f else 0.72f
+    }
+
+    private fun copyUid() {
+        val uid = AuthManager.state().uid?.trim().orEmpty()
+        if (uid.isBlank()) {
+            return
+        }
+        val clipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        clipboardManager.setPrimaryClip(ClipData.newPlainText("uid", uid))
+        Toast.makeText(this, getString(R.string.uid_copied_to_clipboard), Toast.LENGTH_SHORT).show()
     }
 
     private fun applyWindowInsets() {

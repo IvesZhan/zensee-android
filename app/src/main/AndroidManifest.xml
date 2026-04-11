@@ -125,8 +125,21 @@
         <activity
             android:name=".LoginActivity"
             android:exported="false"
+            android:launchMode="singleTop"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.ZenSee" />
+        <activity
+            android:name="com.yuzhan.zenseeapp.wxapi.WXEntryActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.ZenSee.Callback" />
+        <activity
+            android:name="com.yuzhan.zenseeapp.ddauth.DDAuthActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.ZenSee.Callback" />
         <activity
             android:name=".MoodHistoryActivity"
             android:exported="false"

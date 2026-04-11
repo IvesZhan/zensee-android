@@ -29,6 +29,15 @@
                 android:background="@drawable/bg_profile_avatar_ripple">
 
                 <ImageView
+                    android:id="@+id/profileAvatarImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_profile_avatar"
+                    android:clipToOutline="true"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
+                <ImageView
                     android:id="@+id/profileAvatarIcon"
                     android:layout_width="60dp"
                     android:layout_height="60dp"

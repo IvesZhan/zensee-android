@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="minutes_unit">分鐘</string>
+    <string name="profile_tagline_authenticated">靜水流深 · 不舍晝夜</string>
+    <string name="uid_copied_to_clipboard">UID 已複製到剪貼簿</string>
+</resources>

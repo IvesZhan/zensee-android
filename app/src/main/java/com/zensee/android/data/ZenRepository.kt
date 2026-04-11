@@ -130,6 +130,7 @@ object ZenRepository {
         return ProfileSnapshot(
             displayName = auth.displayName,
             email = if (auth.isAuthenticated) auth.email else "登录后同步资料",
+            avatarUrl = if (auth.isAuthenticated) auth.avatarUrl else null,
             streakDays = stats.streakDays,
             totalDays = stats.totalDays,
             totalMinutes = stats.totalMinutes

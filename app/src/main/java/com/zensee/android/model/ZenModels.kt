@@ -69,6 +69,7 @@ data class GroupCard(
 data class ProfileSnapshot(
     val displayName: String,
     val email: String,
+    val avatarUrl: String?,
     val streakDays: Int,
     val totalDays: Int,
     val totalMinutes: Int

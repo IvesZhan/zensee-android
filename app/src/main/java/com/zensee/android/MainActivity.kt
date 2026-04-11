@@ -891,6 +891,11 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.profileTaglineText).text =
             if (authState.isAuthenticated) getString(R.string.profile_tagline_authenticated)
             else getString(R.string.profile_tagline_guest)
+        AvatarImageLoader.load(
+            imageView = findViewById(R.id.profileAvatarImage),
+            avatarUrl = profile.avatarUrl,
+            fallbackView = findViewById(R.id.profileAvatarIcon)
+        )
         findViewById<CompoundButton>(R.id.profileSoundSwitch).isChecked = SettingsManager.isSoundEnabled()
         findViewById<TextView>(R.id.profileReminderSubtitleText).text =
             ReminderManager.state().subtitleText(this)

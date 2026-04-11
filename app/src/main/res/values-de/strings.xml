@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_tagline_authenticated">Stille Wasser sind tief, fließen Tag und Nacht.</string>
+    <string name="uid_copied_to_clipboard">UID in die Zwischenablage kopiert</string>
+</resources>

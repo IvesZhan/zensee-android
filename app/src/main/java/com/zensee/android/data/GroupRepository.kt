@@ -126,26 +126,17 @@ object GroupRepository {
         val yesterdayRollupByUserId = rollups
             .filter { it.sessionDate == yesterday }
             .associateBy { it.userId }
-        val localTodayMinutes = ZenRepository.getStatsSnapshot().heatmapByDate[LocalDate.now()] ?: 0
-
         val members = memberships.map { membership ->
             val rollup = todayRollupByUserId[membership.userId]
-            val isCurrentUser = membership.userId == userId
-            var didCheckInToday = rollup != null
-            var totalMinutesToday = rollup?.totalMinutes ?: 0
-
-            if (isCurrentUser && localTodayMinutes > totalMinutesToday) {
-                didCheckInToday = localTodayMinutes > 0
-                totalMinutesToday = localTodayMinutes
-            }
 
             GroupMemberStatus(
                 userId = membership.userId,
-                nickname = profileById[membership.userId]?.ifBlank { "禅友" } ?: "禅友",
+                nickname = profileById[membership.userId]?.nickname?.ifBlank { "禅友" } ?: "禅友",
+                avatarUrl = profileById[membership.userId]?.avatarUrl,
                 role = membership.role,
                 joinedAt = membership.createdAt,
-                didCheckInToday = didCheckInToday,
-                totalMinutesToday = totalMinutesToday,
+                didCheckInToday = rollup != null,
+                totalMinutesToday = rollup?.totalMinutes ?: 0,
                 lastSharedAt = rollup?.lastSharedAt
             )
         }.sortedWith { lhs, rhs ->
@@ -483,12 +474,24 @@ object GroupRepository {
         }
     }
 
-    private fun fetchProfiles(userIds: List<String>): Map<String, String> {
+    private fun fetchProfiles(userIds: List<String>): Map<String, ProfileRecord> {
         if (userIds.isEmpty()) return emptyMap()
+        return try {
+            fetchProfiles(userIds, selectAvatar = true)
+        } catch (error: GroupException) {
+            if (error.message?.contains("avatar_url", ignoreCase = true) == true) {
+                fetchProfiles(userIds, selectAvatar = false)
+            } else {
+                throw error
+            }
+        }
+    }
+
+    private fun fetchProfiles(userIds: List<String>, selectAvatar: Boolean): Map<String, ProfileRecord> {
         val response = JSONArray(
             request(
                 path = "/rest/v1/profiles" +
-                    "?select=id,nickname" +
+                    "?select=${if (selectAvatar) "id,nickname,avatar_url" else "id,nickname"}" +
                     "&id=${encodedIn(userIds)}",
                 method = "GET"
             )
@@ -496,7 +499,13 @@ object GroupRepository {
         return buildMap {
             for (index in 0 until response.length()) {
                 val item = response.getJSONObject(index)
-                put(item.getString("id"), item.optString("nickname").trim())
+                put(
+                    item.getString("id"),
+                    ProfileRecord(
+                        nickname = item.optString("nickname").trim(),
+                        avatarUrl = if (selectAvatar) item.optNullableString("avatar_url") else null
+                    )
+                )
             }
         }
     }
@@ -769,6 +778,11 @@ object GroupRepository {
         val userId: String,
         val role: GroupMembershipRole,
         val createdAt: Instant
+    )
+
+    private data class ProfileRecord(
+        val nickname: String,
+        val avatarUrl: String?
     )
 
     class GroupException(message: String) : IllegalStateException(message)

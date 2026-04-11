@@ -90,6 +90,7 @@ class GroupRecordActivity : AppCompatActivity() {
                 GroupRecordSnapshotBuilder.build(detailSnapshot, dailyRollups)
             }
             runOnUiThread {
+                if (isDestroyed || isFinishing) return@runOnUiThread
                 isLoading = false
                 result.onSuccess { recordSnapshot ->
                     snapshot = recordSnapshot
@@ -262,6 +263,11 @@ class GroupRecordActivity : AppCompatActivity() {
         val itemBinding = ItemGroupMemberBinding.inflate(layoutInflater)
         itemBinding.groupMemberAvatarText.text = member.nickname.take(1).ifBlank { "禅" }
         GroupUi.applyMemberAvatarStyle(itemBinding.groupMemberAvatarText, avatarStyle)
+        AvatarImageLoader.load(
+            imageView = itemBinding.groupMemberAvatarImage,
+            avatarUrl = member.avatarUrl,
+            fallbackView = itemBinding.groupMemberAvatarText
+        )
         itemBinding.groupMemberNameText.text = member.nickname
         GroupUi.applyMemberNameTextStyle(itemBinding.groupMemberNameText)
         itemBinding.groupMemberRoleBadge.visibility =

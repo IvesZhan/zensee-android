@@ -58,6 +58,7 @@ class GroupManagementActivity : AppCompatActivity() {
         thread(name = "zensee-group-management-detail") {
             val result = runCatching { GroupRepository.fetchGroupDetail(groupId) }
             runOnUiThread {
+                if (isDestroyed || isFinishing) return@runOnUiThread
                 result.onSuccess { detail ->
                     if (detail.currentUserRole != GroupMembershipRole.OWNER) {
                         finish()
@@ -85,6 +86,11 @@ class GroupManagementActivity : AppCompatActivity() {
             )
             itemBinding.groupManageMemberAvatarText.text = member.nickname.take(1).ifBlank { "禅" }
             GroupUi.applyMemberAvatarStyle(itemBinding.groupManageMemberAvatarText, avatarStyles[member.userId])
+            AvatarImageLoader.load(
+                imageView = itemBinding.groupManageMemberAvatarImage,
+                avatarUrl = member.avatarUrl,
+                fallbackView = itemBinding.groupManageMemberAvatarText
+            )
             itemBinding.groupManageMemberNameText.text = member.nickname
             itemBinding.groupManageMemberStatusText.text = if (member.didCheckInToday) {
                 getString(R.string.group_status_minutes_full, member.totalMinutesToday)
@@ -111,6 +117,7 @@ class GroupManagementActivity : AppCompatActivity() {
                 thread(name = "zensee-group-remove-member") {
                     val result = runCatching { GroupRepository.removeMember(groupId, userId) }
                     runOnUiThread {
+                        if (isDestroyed || isFinishing) return@runOnUiThread
                         result.onSuccess {
                             shouldRefreshGroupsOnExit = true
                             hasExplicitResult = true
@@ -155,6 +162,7 @@ class GroupManagementActivity : AppCompatActivity() {
         thread(name = "zensee-group-dissolve") {
             val result = runCatching { GroupRepository.dissolveGroup(group) }
             runOnUiThread {
+                if (isDestroyed || isFinishing) return@runOnUiThread
                 isDissolving = false
                 result.onSuccess {
                     Toast.makeText(this, getString(R.string.group_dissolve_success), Toast.LENGTH_SHORT).show()

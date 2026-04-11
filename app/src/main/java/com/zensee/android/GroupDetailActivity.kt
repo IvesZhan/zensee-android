@@ -156,6 +156,7 @@ class GroupDetailActivity : AppCompatActivity() {
         thread(name = "zensee-group-detail") {
             val result = runCatching { GroupRepository.fetchGroupDetail(groupId) }
             runOnUiThread {
+                if (isDestroyed || isFinishing) return@runOnUiThread
                 isLoading = false
                 result.onSuccess { detail ->
                     snapshot = detail
@@ -230,6 +231,11 @@ class GroupDetailActivity : AppCompatActivity() {
             val itemBinding = ItemGroupMemberBinding.inflate(LayoutInflater.from(this), container, false)
             itemBinding.groupMemberAvatarText.text = member.nickname.take(1).ifBlank { "禅" }
             GroupUi.applyMemberAvatarStyle(itemBinding.groupMemberAvatarText, avatarStyles[member.userId])
+            AvatarImageLoader.load(
+                imageView = itemBinding.groupMemberAvatarImage,
+                avatarUrl = member.avatarUrl,
+                fallbackView = itemBinding.groupMemberAvatarText
+            )
             itemBinding.groupMemberNameText.text = member.nickname
             GroupUi.applyMemberNameTextStyle(itemBinding.groupMemberNameText)
             itemBinding.groupMemberRoleBadge.visibility =

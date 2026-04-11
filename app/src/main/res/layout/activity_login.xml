@@ -15,6 +15,7 @@
         app:titleTextColor="@color/zs_primary_dark" />
 
     <ScrollView
+        android:id="@+id/loginScrollView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
@@ -152,6 +153,135 @@
                         android:indeterminateTint="@color/zs_white"
                         android:visibility="gone" />
                 </FrameLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/loginQuickSignInSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:background="@color/zs_card_stroke" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="12dp"
+                        android:text="@string/login_quick_signin"
+                        android:textColor="@color/zs_text_subtle"
+                        android:textSize="12sp" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:background="@color/zs_card_stroke" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:orientation="horizontal">
+
+                    <FrameLayout
+                        android:id="@+id/loginWeChatButton"
+                        android:layout_width="0dp"
+                        android:layout_height="72dp"
+                        android:layout_weight="1"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackgroundBorderless"
+                        android:foregroundGravity="center">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:layout_gravity="center"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:strokeWidth="0dp">
+
+                            <FrameLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent">
+
+                                <ImageView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:contentDescription="@string/login_wechat_action"
+                                    android:scaleType="fitCenter"
+                                    android:src="@drawable/wechat_share_icon" />
+
+                                <ProgressBar
+                                    android:id="@+id/loginWeChatProgress"
+                                    style="?android:attr/progressBarStyleSmall"
+                                    android:layout_width="20dp"
+                                    android:layout_height="20dp"
+                                    android:layout_gravity="center"
+                                    android:indeterminate="true"
+                                    android:indeterminateTint="@color/zs_primary"
+                                    android:visibility="gone" />
+                            </FrameLayout>
+                        </com.google.android.material.card.MaterialCardView>
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:id="@+id/loginDingTalkButton"
+                        android:layout_width="0dp"
+                        android:layout_height="72dp"
+                        android:layout_weight="1"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackgroundBorderless"
+                        android:foregroundGravity="center">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:layout_gravity="center"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:strokeWidth="0dp">
+
+                            <FrameLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent">
+
+                                <ImageView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:contentDescription="@string/login_dingtalk_action"
+                                    android:scaleType="fitCenter"
+                                    android:src="@drawable/dingtalk_share_icon" />
+
+                                <ProgressBar
+                                    android:id="@+id/loginDingTalkProgress"
+                                    style="?android:attr/progressBarStyleSmall"
+                                    android:layout_width="20dp"
+                                    android:layout_height="20dp"
+                                    android:layout_gravity="center"
+                                    android:indeterminate="true"
+                                    android:indeterminateTint="@color/zs_primary"
+                                    android:visibility="gone" />
+                            </FrameLayout>
+                        </com.google.android.material.card.MaterialCardView>
+                    </FrameLayout>
+                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout

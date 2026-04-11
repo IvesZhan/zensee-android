@@ -64,6 +64,7 @@
     <color name="zs_meditation_gradient_end">#857768</color>
     <color name="zs_profile_avatar_fill">#14A89574</color>
     <color name="zs_profile_avatar_stroke">#4DA89574</color>
+    <color name="zs_group_avatar_overlay_fill">#338E8071</color>
     <color name="zs_row_icon_bg">#F2EEEA</color>
     <color name="zs_scrim_start">#00000000</color>
     <color name="zs_scrim_end">#66000000</color>

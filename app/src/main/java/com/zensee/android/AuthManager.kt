@@ -2,6 +2,7 @@ package com.zensee.android
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -17,13 +18,33 @@ data class AuthState(
     val isAuthenticated: Boolean = false,
     val userId: String? = null,
     val email: String = "",
-    val nickname: String = ""
+    val nickname: String = "",
+    val avatarUrl: String? = null,
+    val authProvider: String? = null,
+    val uid: String? = null
 ) {
     val emailPrefix: String
         get() = email.substringBefore("@", "")
 
     val displayName: String
-        get() = nickname.ifBlank { emailPrefix.ifBlank { "未登录" } }
+        get() = if (!isAuthenticated) {
+            "未登录"
+        } else {
+            SocialAuthIdentity.resolvedDisplayName(
+                nickname = nickname,
+                email = email,
+                provider = authProvider
+            )
+        }
+
+    val supportsPasswordCredentials: Boolean
+        get() {
+            val normalizedProvider = authProvider?.trim()?.lowercase().orEmpty()
+            if (normalizedProvider.isNotEmpty() && normalizedProvider != "email") {
+                return false
+            }
+            return !SocialAuthIdentity.isSyntheticEmail(email)
+        }
 }
 
 data class SignUpResult(
@@ -31,13 +52,23 @@ data class SignUpResult(
     val message: String = ""
 )
 
+private data class ProfileRecord(
+    val nickname: String? = null,
+    val avatarUrl: String? = null,
+    val uid: String? = null
+)
+
 object AuthManager {
+    private const val TAG = "MainlandSocialAuth"
     private const val PREFS_NAME = "zensee_auth"
     private const val KEY_ACCESS_TOKEN = "access_token"
     private const val KEY_REFRESH_TOKEN = "refresh_token"
     private const val KEY_USER_ID = "user_id"
     private const val KEY_EMAIL = "email"
     private const val KEY_NICKNAME = "nickname"
+    private const val KEY_AVATAR_URL = "avatar_url"
+    private const val KEY_AUTH_PROVIDER = "auth_provider"
+    private const val KEY_UID = "uid"
     private const val KEY_RECOVERY_ACCESS_TOKEN = "recovery_access_token"
     private const val KEY_RECOVERY_REFRESH_TOKEN = "recovery_refresh_token"
     private const val KEY_PENDING_RECOVERY_EMAIL = "pending_recovery_email"
@@ -98,8 +129,8 @@ object AuthManager {
         val user = json.getJSONObject("user")
         val userId = user.getString("id")
         val confirmedEmail = user.optString("email", email.trim())
-        val nickname = ensureProfile(userId, confirmedEmail, token)
-        persistSession(token, refresh, userId, confirmedEmail, nickname)
+        val profile = ensureProfile(userId, confirmedEmail, token)
+        persistSession(token, refresh, userId, confirmedEmail, profile)
     }
 
     fun signUp(email: String, password: String): SignUpResult {
@@ -125,9 +156,61 @@ object AuthManager {
 
         val userId = user.getString("id")
         val confirmedEmail = user.optString("email", email.trim())
-        val nickname = ensureProfile(userId, confirmedEmail, token)
-        persistSession(token, refresh, userId, confirmedEmail, nickname)
+        val profile = ensureProfile(userId, confirmedEmail, token)
+        persistSession(token, refresh, userId, confirmedEmail, profile)
         return SignUpResult(signedIn = true)
+    }
+
+    fun signInWithMainlandProvider(
+        provider: MainlandSocialProvider,
+        code: String,
+        state: String?
+    ) {
+        Log.d(
+            TAG,
+            "exchange start provider=${provider.rawValue} codeLength=${code.length} state=${state.orEmpty()}"
+        )
+        val payload = JSONObject()
+            .put("provider", provider.rawValue)
+            .put("code", code.trim())
+        state?.trim()?.takeIf { it.isNotEmpty() }?.let { payload.put("state", it) }
+
+        val responseBody = SupabaseRestClient.request(
+            path = "/functions/v1/social-login-cn",
+            method = "POST",
+            body = payload,
+            allowSessionRecovery = false
+        )
+        Log.d(TAG, "exchange success provider=${provider.rawValue} bodyLength=${responseBody.length}")
+        val response = JSONObject(responseBody)
+        val token = response.getString("accessToken")
+        val refresh = response.optString("refreshToken")
+        val preferredNickname = response.optString("displayName").trim().ifBlank { null }
+        val avatarUrl = response.optNullableString("avatarUrl")
+
+        val user = fetchUser(token)
+        val userId = user.getString("id")
+        val email = user.optString("email").trim()
+        val profile = ensureProfile(
+            userId = userId,
+            email = email,
+            token = token,
+            preferredNickname = preferredNickname,
+            authProvider = provider.rawValue
+        )
+        persistSession(
+            token = token,
+            refresh = refresh,
+            userId = userId,
+            email = email,
+            profile = profile,
+            avatarUrl = avatarUrl,
+            authProvider = provider.rawValue
+        )
+        Log.d(
+            TAG,
+            "session persisted provider=${provider.rawValue} userId=$userId email=$email nickname=${profile.nickname.orEmpty().ifBlank { "<blank>" }} uid=${profile.uid.orEmpty().ifBlank { "<none>" }}"
+        )
     }
 
     fun resetPassword(email: String) {
@@ -183,10 +266,10 @@ object AuthManager {
         val email = user.optString("email").ifBlank {
             pendingPasswordRecoveryEmail.orEmpty()
         }
-        val nickname = ensureProfile(userId, email, token)
+        val profile = ensureProfile(userId, email, token)
         val refresh = recoveryRefreshToken.orEmpty()
         clearPendingPasswordRecovery()
-        persistSession(token, refresh, userId, email, nickname)
+        persistSession(token, refresh, userId, email, profile)
     }
 
     fun cancelPasswordRecovery() {
@@ -254,24 +337,45 @@ object AuthManager {
     fun updateNickname(newNickname: String) {
         val userId = authState.userId ?: throw IllegalStateException("No session")
         val token = accessToken ?: throw IllegalStateException("No access token")
-        val payload = JSONObject()
-            .put("id", userId)
-            .put("nickname", newNickname.trim())
-            .put("updated_at", Instant.now().toString())
-        SupabaseRestClient.request(
-            path = "/rest/v1/profiles?on_conflict=id",
-            method = "POST",
-            body = payload,
-            accessToken = token,
-            preferMergeDuplicates = true,
-            preferReturnRepresentation = true
+        val profile = upsertProfile(userId, token, newNickname.trim())
+        authState = authState.copy(
+            nickname = profile?.nickname ?: newNickname.trim(),
+            avatarUrl = profile?.avatarUrl ?: authState.avatarUrl,
+            uid = profile?.uid ?: authState.uid
         )
-        authState = authState.copy(nickname = newNickname.trim())
         persistLocalState()
         notifyAuthStateChanged()
     }
 
+    fun refreshProfile(): AuthState {
+        val userId = authState.userId ?: return authState
+        val token = accessToken ?: return authState
+        val existing = fetchProfile(userId, token)
+        val profile = if (existing?.uid != null) {
+            existing
+        } else {
+            ensureProfile(
+                userId = userId,
+                email = authState.email,
+                token = token,
+                preferredNickname = authState.nickname.takeIf { it.isNotBlank() },
+                authProvider = authState.authProvider
+            )
+        }
+        authState = authState.copy(
+            nickname = profile.nickname ?: authState.nickname,
+            avatarUrl = profile.avatarUrl ?: authState.avatarUrl,
+            uid = profile.uid ?: authState.uid
+        )
+        persistLocalState()
+        notifyAuthStateChanged()
+        return authState
+    }
+
     fun updatePassword(newPassword: String) {
+        if (!authState.supportsPasswordCredentials) {
+            throw IllegalStateException("Social sign-in accounts do not support password changes")
+        }
         val token = accessToken ?: throw IllegalStateException("No access token")
         val payload = JSONObject().put("password", newPassword)
         SupabaseRestClient.request(
@@ -306,7 +410,10 @@ object AuthManager {
                 isAuthenticated = true,
                 userId = userId.ifBlank { null } ?: authState.userId,
                 email = email,
-                nickname = authState.nickname
+                nickname = authState.nickname,
+                avatarUrl = authState.avatarUrl,
+                authProvider = authState.authProvider,
+                uid = authState.uid
             )
             persistLocalState()
             notifyAuthStateChanged()
@@ -319,18 +426,64 @@ object AuthManager {
         }
     }
 
-    private fun ensureProfile(userId: String, email: String, token: String): String {
+    private fun ensureProfile(
+        userId: String,
+        email: String,
+        token: String,
+        preferredNickname: String? = null,
+        authProvider: String? = null
+    ): ProfileRecord {
+        val resolvedPreferredNickname = SocialAuthIdentity.trimmed(preferredNickname)
         val existing = fetchProfile(userId, token)
-        if (existing != null) return existing
+        if (existing?.uid != null) {
+            val shouldApplyPreferredNickname = resolvedPreferredNickname != null && (
+                existing.nickname.isNullOrBlank() ||
+                    SocialAuthIdentity.isGeneratedSocialNickname(existing.nickname, email)
+                )
+            if (!shouldApplyPreferredNickname) {
+                return existing
+            }
+            return upsertProfile(userId, token, resolvedPreferredNickname)
+                ?: fetchProfile(userId, token)
+                ?: existing.copy(nickname = resolvedPreferredNickname)
+        }
 
-        val fallbackNickname = email.substringBefore("@").trim()
-        if (fallbackNickname.isBlank()) return ""
+        val fallbackNickname = when {
+            resolvedPreferredNickname != null -> resolvedPreferredNickname
+            SocialAuthIdentity.isSyntheticEmail(email) -> null
+            else -> SocialAuthIdentity.emailPrefix(email).ifBlank { null }
+        }
+
+        val profile = upsertProfile(userId, token, fallbackNickname) ?: fetchProfile(userId, token)
+        if (profile != null) {
+            return profile
+        }
+
+        if (fallbackNickname != null) {
+            return ProfileRecord(nickname = fallbackNickname)
+        }
+
+        return existing ?: ProfileRecord(
+            nickname = SocialAuthIdentity.resolvedDisplayName(
+                nickname = null,
+                email = email,
+                provider = authProvider
+            )
+        )
+    }
+
+    private fun upsertProfile(
+        userId: String,
+        token: String,
+        nickname: String?
+    ): ProfileRecord? {
         val payload = JSONObject()
             .put("id", userId)
-            .put("nickname", fallbackNickname)
             .put("updated_at", Instant.now().toString())
 
-        SupabaseRestClient.request(
+        nickname?.trim()?.takeIf { it.isNotEmpty() }?.let { payload.put("nickname", it) }
+
+        val body = SupabaseRestClient.request(
             path = "/rest/v1/profiles?on_conflict=id",
             method = "POST",
             body = payload,
@@ -338,19 +491,38 @@ object AuthManager {
             preferMergeDuplicates = true,
             preferReturnRepresentation = true
         )
-        return fallbackNickname
+        val array = JSONArray(body)
+        return parseProfile(array.optJSONObject(0))
     }
 
-    private fun fetchProfile(userId: String, token: String): String? {
-        val body = SupabaseRestClient.request(
-            path = "/rest/v1/profiles?id=${encodedEq(userId)}&select=id,nickname",
-            method = "GET",
-            accessToken = token
-        )
+    private fun fetchProfile(userId: String, token: String): ProfileRecord? {
+        val body = try {
+            SupabaseRestClient.request(
+                path = "/rest/v1/profiles?id=${encodedEq(userId)}&select=id,nickname,avatar_url,uid",
+                method = "GET",
+                accessToken = token
+            )
+        } catch (_: Exception) {
+            SupabaseRestClient.request(
+                path = "/rest/v1/profiles?id=${encodedEq(userId)}&select=id,nickname,avatar_url",
+                method = "GET",
+                accessToken = token
+            )
+        }
         val array = JSONArray(body)
         if (array.length() == 0) return null
-        val nickname = array.getJSONObject(0).optString("nickname").trim()
-        return nickname.ifBlank { null }
+        return parseProfile(array.optJSONObject(0))
+    }
+
+    private fun parseProfile(profile: JSONObject?): ProfileRecord? {
+        if (profile == null) {
+            return null
+        }
+        return ProfileRecord(
+            nickname = profile.optNullableString("nickname"),
+            avatarUrl = profile.optNullableString("avatar_url"),
+            uid = profile.optNullableValueString("uid")
+        )
     }
 
     private fun persistSession(
@@ -358,7 +530,9 @@ object AuthManager {
         refresh: String,
         userId: String,
         email: String,
-        nickname: String
+        profile: ProfileRecord,
+        avatarUrl: String? = null,
+        authProvider: String? = null
     ) {
         accessToken = token
         refreshToken = refresh
@@ -366,7 +540,10 @@ object AuthManager {
             isAuthenticated = true,
             userId = userId,
             email = email,
-            nickname = nickname
+            nickname = profile.nickname.orEmpty(),
+            avatarUrl = avatarUrl?.trim()?.ifEmpty { null } ?: profile.avatarUrl,
+            authProvider = authProvider?.trim()?.ifEmpty { null },
+            uid = profile.uid
         )
         persistLocalState()
         notifyAuthStateChanged()
@@ -385,6 +562,9 @@ object AuthManager {
         val storedUserId = prefs().getString(KEY_USER_ID, null)
         val storedEmail = prefs().getString(KEY_EMAIL, "") ?: ""
         val storedNickname = prefs().getString(KEY_NICKNAME, "") ?: ""
+        val storedAvatarUrl = prefs().getString(KEY_AVATAR_URL, null)?.trim()?.ifEmpty { null }
+        val storedAuthProvider = prefs().getString(KEY_AUTH_PROVIDER, null)?.trim()?.ifEmpty { null }
+        val storedUid = prefs().getString(KEY_UID, null)?.trim()?.ifEmpty { null }
         accessToken = prefs().getString(KEY_ACCESS_TOKEN, null)
         refreshToken = prefs().getString(KEY_REFRESH_TOKEN, null)
         recoveryAccessToken = prefs().getString(KEY_RECOVERY_ACCESS_TOKEN, null)
@@ -395,7 +575,10 @@ object AuthManager {
                 isAuthenticated = true,
                 userId = storedUserId,
                 email = storedEmail,
-                nickname = storedNickname
+                nickname = storedNickname,
+                avatarUrl = storedAvatarUrl,
+                authProvider = storedAuthProvider,
+                uid = storedUid
             )
         } else {
             AuthState()
@@ -409,6 +592,9 @@ object AuthManager {
             .putString(KEY_USER_ID, authState.userId)
             .putString(KEY_EMAIL, authState.email)
             .putString(KEY_NICKNAME, authState.nickname)
+            .putString(KEY_AVATAR_URL, authState.avatarUrl)
+            .putString(KEY_AUTH_PROVIDER, authState.authProvider)
+            .putString(KEY_UID, authState.uid)
             .putString(KEY_RECOVERY_ACCESS_TOKEN, recoveryAccessToken)
             .putString(KEY_RECOVERY_REFRESH_TOKEN, recoveryRefreshToken)
             .putString(KEY_PENDING_RECOVERY_EMAIL, pendingPasswordRecoveryEmail)
@@ -476,6 +662,16 @@ object AuthManager {
         return params
     }
 
+    private fun JSONObject.optNullableString(key: String): String? {
+        if (!has(key) || isNull(key)) return null
+        return optString(key).trim().ifBlank { null }
+    }
+
+    private fun JSONObject.optNullableValueString(key: String): String? {
+        if (!has(key) || isNull(key)) return null
+        return opt(key)?.toString()?.trim()?.ifBlank { null }
+    }
+
     private fun isPasswordRecoveryUrl(uri: Uri): Boolean {
         val normalizedPath = uri.path.orEmpty().trim('/').lowercase()
         val matchesRedirect = uri.scheme == Uri.parse(PASSWORD_RECOVERY_REDIRECT_URL).scheme &&
@@ -483,6 +679,81 @@ object AuthManager {
             normalizedPath == Uri.parse(PASSWORD_RECOVERY_REDIRECT_URL).path.orEmpty().trim('/').lowercase()
         if (matchesRedirect) return true
         return parseUrlParams(uri)["type"]?.lowercase() == "recovery"
+    }
+}
+
+private object SocialAuthIdentity {
+    private const val SYNTHETIC_EMAIL_DOMAIN = "cn-social.zensee.local"
+
+    fun resolvedDisplayName(
+        nickname: String?,
+        email: String,
+        provider: String?
+    ): String {
+        val normalizedNickname = trimmed(nickname)
+        if (normalizedNickname != null && !isGeneratedSocialNickname(normalizedNickname, email)) {
+            return normalizedNickname
+        }
+
+        if (isSyntheticEmail(email)) {
+            return providerDisplayName(provider)
+        }
+
+        return emailPrefix(email)
+    }
+
+    fun trimmed(value: String?): String? {
+        val normalized = value?.trim().orEmpty()
+        return normalized.ifEmpty { null }
+    }
+
+    fun isSyntheticEmail(email: String): Boolean {
+        return emailParts(email)?.second.equals(SYNTHETIC_EMAIL_DOMAIN, ignoreCase = true)
+    }
+
+    fun emailPrefix(email: String): String {
+        return emailParts(email)?.first.orEmpty()
+    }
+
+    fun isGeneratedSocialNickname(nickname: String, email: String): Boolean {
+        return isSyntheticEmail(email) &&
+            nickname == emailPrefix(email) &&
+            isGeneratedSocialEmailPrefix(nickname)
+    }
+
+    private fun isGeneratedSocialEmailPrefix(value: String): Boolean {
+        val parts = value.split("_", limit = 2)
+        if (parts.size != 2) {
+            return false
+        }
+
+        val provider = parts[0].lowercase()
+        val suffix = parts[1]
+        return provider in setOf("wechat", "dingtalk") &&
+            suffix.length == 24 &&
+            suffix.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' }
+    }
+
+    private fun providerDisplayName(provider: String?): String {
+        return when (provider?.trim()?.lowercase()) {
+            "wechat" -> "微信"
+            "dingtalk" -> "钉钉"
+            else -> "社交登录用户"
+        }
+    }
+
+    private fun emailParts(email: String): Pair<String, String>? {
+        val parts = email.split("@", limit = 2)
+        if (parts.size != 2) {
+            return null
+        }
+
+        val prefix = parts[0].trim()
+        val domain = parts[1].trim()
+        if (prefix.isEmpty() || domain.isEmpty()) {
+            return null
+        }
+        return prefix to domain
     }
 }
 
@@ -553,7 +824,7 @@ private object SupabaseRestClient {
             setRequestProperty("apikey", API_KEY)
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
-            accessToken?.let { setRequestProperty("Authorization", "Bearer $it") }
+            setRequestProperty("Authorization", "Bearer ${accessToken ?: API_KEY}")
             if (preferMergeDuplicates && preferReturnRepresentation) {
                 setRequestProperty("Prefer", "resolution=merge-duplicates,return=representation")
             } else if (preferMergeDuplicates) {

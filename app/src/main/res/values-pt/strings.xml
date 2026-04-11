@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_tagline_authenticated">Águas paradas são profundas, fluindo dia e noite.</string>
+    <string name="uid_copied_to_clipboard">UID copiado para a área de transferência</string>
+</resources>

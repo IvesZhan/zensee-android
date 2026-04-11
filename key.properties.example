@@ -4,6 +4,9 @@ keyAlias=YOUR_KEY_ALIAS
 keyPassword=YOUR_KEY_PASSWORD
 supabaseUrl=https://your-project-ref.supabase.co
 supabaseAnonKey=YOUR_SUPABASE_ANON_KEY
+wechatAppId=YOUR_WECHAT_APP_ID
+dingtalkClientId=YOUR_DINGTALK_CLIENT_ID
+dingtalkRedirectUri=https://your-domain.example.com/dingtalk-auth/
 pgyerApiKey=YOUR_PGYER_API_KEY
 pgyerUserKey=YOUR_PGYER_USER_KEY
 # Optional: 1=public, 2=password, 3=restrict

@@ -88,6 +88,7 @@ data class GroupModel(
 data class GroupMemberStatus(
     val userId: String,
     val nickname: String,
+    val avatarUrl: String?,
     val role: GroupMembershipRole,
     val joinedAt: Instant,
     val didCheckInToday: Boolean,
@@ -188,6 +189,7 @@ object GroupRecordSummaryBuilder {
             GroupMemberStatus(
                 userId = member.userId,
                 nickname = member.nickname,
+                avatarUrl = member.avatarUrl,
                 role = member.role,
                 joinedAt = member.joinedAt,
                 didCheckInToday = rollup != null,

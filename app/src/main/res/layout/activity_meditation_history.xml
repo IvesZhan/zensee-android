@@ -40,10 +40,11 @@
                 <LinearLayout
                     android:id="@+id/historyEmptyState"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_horizontal"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
                     android:orientation="vertical"
-                    android:paddingTop="140dp"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp"
                     android:visibility="gone">
 
                     <TextView
@@ -57,6 +58,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
+                        android:gravity="center"
                         android:text="@string/no_meditation_records"
                         android:textColor="@color/zs_text_subtle"
                         android:textSize="15sp" />
@@ -126,16 +128,25 @@
                                 </LinearLayout>
                             </LinearLayout>
 
-                            <ImageView
+                            <TextView
                                 android:id="@+id/todayShareButton"
-                                android:layout_width="36dp"
-                                android:layout_height="36dp"
-                                android:background="@drawable/bg_capsule_tint"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_group_action_badge_primary"
                                 android:clickable="true"
+                                android:ellipsize="end"
                                 android:focusable="true"
-                                android:padding="9dp"
-                                android:src="@android:drawable/ic_menu_share"
-                                android:tint="@color/zs_primary" />
+                                android:gravity="center"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:paddingStart="10dp"
+                                android:paddingTop="6dp"
+                                android:paddingEnd="10dp"
+                                android:paddingBottom="6dp"
+                                android:text="@string/group_share_title"
+                                android:textColor="@color/zs_primary"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
                         </LinearLayout>
 
                         <com.google.android.material.card.MaterialCardView
