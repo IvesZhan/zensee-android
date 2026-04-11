@@ -6,7 +6,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.content.res.Resources
 import android.os.LocaleList
 import android.telephony.TelephonyManager
 import android.widget.Toast
@@ -22,6 +21,8 @@ enum class MainlandShareDestination {
 
 data class GroupSharePayload(
     val subject: String,
+    val message: String,
+    val shareUrl: String,
     val messageWithLink: String,
     val clipboardText: String
 )
@@ -90,18 +91,30 @@ object GroupShareCoordinator {
 
     fun payload(context: Context, group: GroupModel): GroupSharePayload {
         val shareUrl = GroupShareLinkBuilder.shareUrl(group.id)
-        val messageWithLink = context.getString(R.string.group_share_message_with_link, group.name, shareUrl)
+        val brandName = context.getString(R.string.brand_name)
+        val message = context.getString(R.string.group_share_message, group.name, brandName)
+        val messageWithLink = context.getString(
+            R.string.group_share_message_with_link,
+            group.name,
+            shareUrl,
+            brandName
+        )
         return GroupSharePayload(
             subject = group.name + " · " + context.getString(R.string.group_discover_title),
+            message = message,
+            shareUrl = shareUrl,
             messageWithLink = messageWithLink,
             clipboardText = messageWithLink
         )
     }
 
     fun appPayload(context: Context): GroupSharePayload {
+        val message = context.getString(R.string.share_app_message)
         val messageWithLink = context.getString(R.string.share_app_message_with_link, OFFICIAL_HOME_URL)
         return GroupSharePayload(
             subject = context.getString(R.string.brand_name),
+            message = message,
+            shareUrl = OFFICIAL_HOME_URL,
             messageWithLink = messageWithLink,
             clipboardText = messageWithLink
         )
@@ -138,13 +151,7 @@ object GroupShareCoordinator {
             }
 
             MainlandShareDestination.DINGTALK -> {
-                launchPackageShare(
-                    activity = activity,
-                    payload = payload,
-                    packageName = DINGTALK_PACKAGE,
-                    packageMissingMessage = activity.getString(R.string.group_share_dingtalk_not_installed),
-                    packageOpenFailedMessage = activity.getString(R.string.group_share_dingtalk_open_failed)
-                )
+                DingTalkShareCoordinator.shareWebPage(activity, payload)
             }
 
             MainlandShareDestination.MORE -> presentSystemShare(activity, payload)

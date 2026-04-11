@@ -153,6 +153,7 @@
     <string name="delete_account_final_message">この操作により、すべての禅修記録が完全に削除され、元に戻せません。続行しますか？</string>
     <string name="deleting_account">アカウントを削除しています</string>
     <string name="deleting_account_subtitle">しばらくお待ちください。データを安全に整理しています。</string>
+    <string name="share_app_message">禅·見で日々の禅修を記録しています。よかったら使ってみてください。</string>
     <string name="share_app_message_with_link">禅·見で日々の禅修を記録しています。よかったら使ってみてください。\n%1$s</string>
     <string name="share_link_copied">リンクをクリップボードにコピーしました</string>
     <string name="uid_copied_to_clipboard">UIDをクリップボードにコピーしました</string>
@@ -255,12 +256,16 @@
     <string name="group_share_more">ほかのグループを探す</string>
     <string name="group_share_success">チェックインしました</string>
     <string name="group_share_link_copied">グループ招待をクリップボードにコピーしました</string>
-    <string name="group_share_message_with_link">%2$s\n「%1$s」グループに招待します。この ZenSee リンクを開くと参加できます。</string>
+    <string name="group_share_message">「%1$s」グループに招待します。この %2$s リンクを開くと参加できます。</string>
+    <string name="group_share_message_with_link">%2$s\n「%1$s」グループに招待します。この %3$s リンクを開くと参加できます。</string>
     <string name="group_share_wechat">WeChat</string>
     <string name="group_share_dingtalk">DingTalk</string>
+    <string name="group_share_dingtalk_app_id_missing">ローカル設定に DingTalk AppKey を入力してください。</string>
     <string name="group_share_wechat_not_installed">WeChat をインストールしてから共有してください。</string>
     <string name="group_share_dingtalk_not_installed">DingTalk をインストールしてから共有してください。</string>
     <string name="group_share_wechat_open_failed">WeChat を開けませんでした。しばらくしてから再度お試しください。</string>
+    <string name="group_share_dingtalk_version_too_low">DingTalk のバージョンが古すぎます。アップデートしてから共有してください。</string>
+    <string name="group_share_dingtalk_register_failed">DingTalk の登録に失敗しました。開発者プラットフォームの Android 共有設定を確認してください。</string>
     <string name="group_share_dingtalk_open_failed">DingTalk を開けませんでした。しばらくしてから再度お試しください。</string>
     <string name="group_already_shared">チェックイン済み</string>
     <string name="group_management_intro">オーナーは削除できません。まず長期間未禅修のメンバーの整理をおすすめします。</string>
