@@ -179,7 +179,7 @@ object ZenRepository {
         durationMinutes: Int,
         startedAt: Instant,
         endedAt: Instant
-    ) {
+    ): MeditationSessionSummary {
         val sessions = loadSessions().toMutableList()
         val session = MeditationSessionSummary(
             id = UUID.randomUUID().toString(),
@@ -192,6 +192,7 @@ object ZenRepository {
         persistSessions(sessions)
         AppDataRefreshCoordinator.markZenDataDirty()
         syncSessionIfNeeded(session)
+        return session
     }
 
     fun saveMood(
@@ -354,6 +355,15 @@ object ZenRepository {
         }
     }
 
+    fun ensureSessionSynced(session: MeditationSessionSummary) {
+        val authState = AuthManager.state()
+        val token = AuthManager.accessTokenOrNull()
+        val userId = authState.userId
+        if (!authState.isAuthenticated || token.isNullOrBlank() || userId.isNullOrBlank()) return
+
+        CloudSyncApi.insertSession(session, userId, token)
+    }
+
     private fun syncMoodIfNeeded(record: MoodRecord) {
         val authState = AuthManager.state()
         val token = AuthManager.accessTokenOrNull()
@@ -443,10 +453,11 @@ private object CloudSyncApi {
             .put("started_at", session.startedAt.toString())
             .put("ended_at", session.endedAt.toString())
         request(
-            path = "/rest/v1/meditation_sessions",
+            path = "/rest/v1/meditation_sessions?on_conflict=id",
             method = "POST",
             body = payload,
-            accessToken = accessToken
+            accessToken = accessToken,
+            preferMergeDuplicates = true
         )
     }
 
@@ -473,7 +484,8 @@ private object CloudSyncApi {
         path: String,
         method: String,
         body: JSONObject? = null,
-        accessToken: String
+        accessToken: String,
+        preferMergeDuplicates: Boolean = false
     ): String {
         val response = SessionAwareRequestExecutor.execute(
             accessTokenProvider = { AuthManager.accessTokenOrNull() ?: accessToken },
@@ -484,7 +496,8 @@ private object CloudSyncApi {
                 path = path,
                 method = method,
                 body = body,
-                accessToken = token
+                accessToken = token,
+                preferMergeDuplicates = preferMergeDuplicates
             )
         }
         if (response.code !in 200..299) {
@@ -502,7 +515,8 @@ private object CloudSyncApi {
         path: String,
         method: String,
         body: JSONObject? = null,
-        accessToken: String?
+        accessToken: String?,
+        preferMergeDuplicates: Boolean = false
     ): RawHttpResponse {
         val token = accessToken ?: return RawHttpResponse(401, """{"message":"登录已过期，请重新登录"}""")
         val connection = (URL("$BASE_URL$path").openConnection() as HttpURLConnection).apply {
@@ -514,6 +528,9 @@ private object CloudSyncApi {
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
             setRequestProperty("Authorization", "Bearer $token")
+            if (preferMergeDuplicates) {
+                setRequestProperty("Prefer", "resolution=merge-duplicates")
+            }
         }
 
         if (body != null) {

@@ -1,6 +1,5 @@
 package com.zensee.android
 
-import android.app.AlertDialog
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -13,56 +12,57 @@ import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.updateLayoutParams
 import com.zensee.android.data.GroupRepository
 import com.zensee.android.databinding.ActivityGroupDetailBinding
 import com.zensee.android.databinding.ItemGroupMemberBinding
-import com.zensee.android.model.GroupDetailSnapshot
 import com.zensee.android.model.GroupDetailMemberOrdering
+import com.zensee.android.model.GroupDetailSnapshot
 import com.zensee.android.model.GroupMemberStatus
-import com.zensee.android.model.GroupMembershipRole
+import kotlin.math.max
 import kotlin.concurrent.thread
 
 class GroupDetailActivity : AppCompatActivity() {
     private lateinit var binding: ActivityGroupDetailBinding
     private var snapshot: GroupDetailSnapshot? = null
     private var isLoading = false
-    private var isLeavingGroup = false
     private var loadErrorMessage: String? = null
     private var shouldSkipNextResumeReload = false
-    private var pendingMainlandShareDestination: MainlandShareDestination? = null
-    private var pendingSharePayload: GroupSharePayload? = null
 
-    private val managementLauncher = registerForActivityResult(
+    private val moreInfoLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode != RESULT_OK) return@registerForActivityResult
+        val data = result.data
+        val shouldRefreshGroups =
+            data?.getBooleanExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, false) == true
+        val shouldRefreshNotifications =
+            data?.getBooleanExtra(MainActivity.GROUP_RESULT_REFRESH_NOTIFICATIONS, false) == true
 
-        if (result.data?.getBooleanExtra(GroupManagementActivity.EXTRA_DISSOLVED, false) == true) {
+        if (data?.getBooleanExtra(GroupMoreInfoActivity.EXTRA_GROUP_CLOSED, false) == true) {
             setResult(
                 RESULT_OK,
                 Intent()
-                    .putExtra(
-                        MainActivity.GROUP_RESULT_REFRESH_GROUPS,
-                        result.data?.getBooleanExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, false) == true
-                    )
+                    .putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, shouldRefreshGroups)
                     .putExtra(
                         MainActivity.GROUP_RESULT_REMOVED_GROUP_ID,
-                        result.data?.getStringExtra(MainActivity.GROUP_RESULT_REMOVED_GROUP_ID)
+                        data.getStringExtra(MainActivity.GROUP_RESULT_REMOVED_GROUP_ID)
                     )
-                    .putExtra(
-                        MainActivity.GROUP_RESULT_REFRESH_NOTIFICATIONS,
-                        result.data?.getBooleanExtra(MainActivity.GROUP_RESULT_REFRESH_NOTIFICATIONS, false) == true
-                    )
+                    .putExtra(MainActivity.GROUP_RESULT_REFRESH_NOTIFICATIONS, shouldRefreshNotifications)
             )
             finish()
             return@registerForActivityResult
         }
 
-        if (result.data?.getBooleanExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, false) == true) {
+        if (shouldRefreshGroups || shouldRefreshNotifications) {
             setResult(
                 RESULT_OK,
-                Intent().putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, true)
+                Intent()
+                    .putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, shouldRefreshGroups)
+                    .putExtra(MainActivity.GROUP_RESULT_REFRESH_NOTIFICATIONS, shouldRefreshNotifications)
             )
+        }
+        if (shouldRefreshGroups) {
             loadDetail()
         }
     }
@@ -84,24 +84,9 @@ class GroupDetailActivity : AppCompatActivity() {
             onBackPressedDispatcher.onBackPressed()
         }
         AuthUi.applyEdgeToEdge(this, binding.groupDetailRoot, binding.groupDetailToolbar)
-        binding.groupLeaveCard.setOnClickListener {
-            confirmLeaveGroup()
-        }
-        binding.groupManageButton.setOnClickListener {
-            val currentSnapshot = snapshot ?: return@setOnClickListener
-            val groupId = currentSnapshot.group.id
-            managementLauncher.launch(
-                Intent(this, GroupManagementActivity::class.java)
-                    .putExtra(EXTRA_GROUP_ID, groupId)
-                    .putExtra(GroupManagementActivity.EXTRA_SNAPSHOT, currentSnapshot)
-            )
-        }
-        binding.groupRecordCard.setOnClickListener {
-            openGroupRecord()
-        }
-        binding.groupDetailRetryButton.setOnClickListener {
-            loadDetail()
-        }
+        binding.groupRecordCard.setOnClickListener { openGroupRecord() }
+        binding.groupDetailRetryButton.setOnClickListener { loadDetail() }
+
         if (snapshot != null) {
             shouldSkipNextResumeReload = true
             render()
@@ -122,20 +107,25 @@ class GroupDetailActivity : AppCompatActivity() {
         return true
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-    }
-
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.group_detail_menu, menu)
-        menu.findItem(R.id.action_share_group)?.icon?.mutate()?.setTint(getColor(R.color.zs_primary_dark))
+        menu.findItem(R.id.action_more_group)?.icon?.mutate()?.setTint(getColor(R.color.zs_primary_dark))
         return true
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        val enabled = snapshot != null
+        menu.findItem(R.id.action_more_group)?.let { item ->
+            item.isEnabled = enabled
+            item.icon?.alpha = if (enabled) 255 else 96
+        }
+        return super.onPrepareOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.action_share_group -> {
-                shareGroupLink()
+            R.id.action_more_group -> {
+                openMoreInfo()
                 true
             }
 
@@ -162,7 +152,7 @@ class GroupDetailActivity : AppCompatActivity() {
                     snapshot = detail
                     loadErrorMessage = null
                 }.onFailure { error ->
-                    val message = error.message ?: getString(R.string.group_detail_load_failed)
+                    val message = GroupUi.errorMessage(this, error, R.string.group_detail_load_failed)
                     if (snapshot == null) {
                         loadErrorMessage = message
                     } else {
@@ -183,6 +173,7 @@ class GroupDetailActivity : AppCompatActivity() {
         binding.groupDetailScroll.visibility =
             if (current != null) android.view.View.VISIBLE else android.view.View.GONE
         binding.groupDetailEmptyText.text = loadErrorMessage ?: getString(R.string.group_detail_load_failed)
+        invalidateOptionsMenu()
         if (current == null) return
 
         supportActionBar?.title = current.group.name
@@ -191,18 +182,11 @@ class GroupDetailActivity : AppCompatActivity() {
             ownerName(current)
         )
         binding.groupDescriptionText.text = current.group.displayDescription
+        binding.groupDescriptionText.post { syncDescriptionAccentHeight() }
         binding.groupMembersCountText.text = buildPeopleCountText(current.members.size)
         binding.groupMeditatedCountText.text =
             buildPeopleCountText(current.members.count { it.didCheckInToday })
         binding.groupRecordSummaryText.text = recordSummaryText(current)
-        binding.groupManageButton.visibility =
-            if (current.currentUserRole == GroupMembershipRole.OWNER) android.view.View.VISIBLE else android.view.View.GONE
-        binding.groupManagementNoteText.visibility =
-            if (current.currentUserRole == GroupMembershipRole.OWNER) android.view.View.VISIBLE else android.view.View.GONE
-        binding.groupLeaveCard.visibility =
-            if (current.currentUserRole == GroupMembershipRole.MEMBER) android.view.View.VISIBLE else android.view.View.GONE
-        binding.groupLeaveProgress.visibility =
-            if (isLeavingGroup) android.view.View.VISIBLE else android.view.View.GONE
         val avatarStyles = GroupUi.buildMemberAvatarStyles(this, current.members, current.currentUserId)
 
         renderMemberSection(
@@ -239,103 +223,32 @@ class GroupDetailActivity : AppCompatActivity() {
             itemBinding.groupMemberNameText.text = member.nickname
             GroupUi.applyMemberNameTextStyle(itemBinding.groupMemberNameText)
             itemBinding.groupMemberRoleBadge.visibility =
-                if (member.role == GroupMembershipRole.OWNER) android.view.View.VISIBLE else android.view.View.GONE
+                if (member.role == com.zensee.android.model.GroupMembershipRole.OWNER) {
+                    android.view.View.VISIBLE
+                } else {
+                    android.view.View.GONE
+                }
             itemBinding.groupMemberStatusText.text =
                 if (member.didCheckInToday) getString(R.string.group_meditated) else ""
             itemBinding.groupMemberStatusText.visibility =
                 if (member.didCheckInToday) android.view.View.VISIBLE else android.view.View.GONE
             itemBinding.groupMemberMinutesText.text =
-                if (member.didCheckInToday) buildMinutesText(member.totalMinutesToday)
-                else ""
+                if (member.didCheckInToday) buildMinutesText(member.totalMinutesToday) else ""
             container.addView(itemBinding.root)
         }
     }
 
-    private fun confirmLeaveGroup() {
-        snapshot?.group ?: return
-        if (isLeavingGroup) return
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.group_leave_confirm_title))
-            .setMessage(getString(R.string.group_leave_confirm_message))
-            .setNegativeButton(getString(R.string.cancel), null)
-            .setPositiveButton(getString(R.string.group_leave_title)) { _, _ ->
-                leaveGroup()
-            }
-            .show()
-    }
-
-    private fun leaveGroup() {
-        val group = snapshot?.group ?: return
-        isLeavingGroup = true
-        render()
-        thread(name = "zensee-group-leave") {
-            val result = runCatching { GroupRepository.leaveGroup(group) }
-            runOnUiThread {
-                isLeavingGroup = false
-                result.onSuccess {
-                    Toast.makeText(this, getString(R.string.group_leave_success), Toast.LENGTH_SHORT).show()
-                    setResult(
-                        RESULT_OK,
-                        Intent()
-                            .putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, true)
-                            .putExtra(MainActivity.GROUP_RESULT_REFRESH_NOTIFICATIONS, true)
-                    )
-                    finish()
-                }.onFailure { error ->
-                    render()
-                    Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    private fun shareGroupLink() {
-        val group = snapshot?.group ?: return
-        val payload = GroupShareCoordinator.payload(this, group)
-        GroupShareCoordinator.copyToClipboard(this, group.name, payload)
-        Toast.makeText(this, getString(R.string.group_share_link_copied), Toast.LENGTH_SHORT).show()
-        binding.groupDetailRoot.postDelayed({
-            if (GroupShareCoordinator.isMainlandChinaRegion(this)) {
-                showMainlandShareSheet(payload)
-            } else {
-                GroupShareCoordinator.presentSystemShare(this, payload)
-            }
-        }, 220L)
-    }
-
-    private fun showMainlandShareSheet(payload: GroupSharePayload) {
-        pendingSharePayload = payload
-        pendingMainlandShareDestination = null
-        (supportFragmentManager.findFragmentByTag(GroupShareBottomSheet.TAG) as? GroupShareBottomSheet)
-            ?.dismissAllowingStateLoss()
-
-        GroupShareBottomSheet().apply {
-            onDestinationSelected = { destination ->
-                pendingMainlandShareDestination = destination
-            }
-            onSheetDismissed = {
-                executePendingMainlandShareIfNeeded()
-            }
-        }.show(supportFragmentManager, GroupShareBottomSheet.TAG)
-    }
-
-    private fun executePendingMainlandShareIfNeeded() {
-        val destination = pendingMainlandShareDestination
-        val payload = pendingSharePayload
-        pendingMainlandShareDestination = null
-        pendingSharePayload = null
-
-        if (destination == null || payload == null) {
-            return
-        }
-
-        binding.groupDetailRoot.post {
-            GroupShareCoordinator.presentThirdPartyShare(this, destination, payload)
-        }
+    private fun openMoreInfo() {
+        val currentSnapshot = snapshot ?: return
+        moreInfoLauncher.launch(
+            Intent(this, GroupMoreInfoActivity::class.java)
+                .putExtra(EXTRA_GROUP_ID, currentSnapshot.group.id)
+                .putExtra(GroupMoreInfoActivity.EXTRA_SNAPSHOT, currentSnapshot)
+        )
     }
 
     private fun ownerName(snapshot: GroupDetailSnapshot): String {
-        return snapshot.members.firstOrNull { it.role == GroupMembershipRole.OWNER }?.nickname
+        return snapshot.members.firstOrNull { it.role == com.zensee.android.model.GroupMembershipRole.OWNER }?.nickname
             ?: getString(R.string.group_owner_fallback)
     }
 
@@ -394,6 +307,14 @@ class GroupDetailActivity : AppCompatActivity() {
         return getString(R.string.group_record_entry_empty)
     }
 
+    private fun syncDescriptionAccentHeight() {
+        val textHeight = binding.groupDescriptionText.layout?.height ?: binding.groupDescriptionText.height
+        val targetHeight = max(textHeight - 2.dp, 18.dp)
+        binding.groupDescriptionAccentView.updateLayoutParams<android.widget.LinearLayout.LayoutParams> {
+            height = targetHeight
+        }
+    }
+
     private fun openGroupRecord() {
         val currentSnapshot = snapshot ?: return
         startActivity(
@@ -407,6 +328,9 @@ class GroupDetailActivity : AppCompatActivity() {
         const val EXTRA_GROUP_ID = "extra_group_id"
         const val EXTRA_SNAPSHOT = "extra_group_snapshot"
     }
+
+    private val Int.dp: Int
+        get() = (this * resources.displayMetrics.density).toInt()
 
     private fun Intent.snapshotExtra(): GroupDetailSnapshot? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

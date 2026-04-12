@@ -97,7 +97,7 @@ class GroupRecordActivity : AppCompatActivity() {
                     loadErrorMessage = null
                     expandedDayIds.clear()
                 }.onFailure { error ->
-                    val message = error.message ?: getString(R.string.group_record_load_failed)
+                    val message = GroupUi.errorMessage(this, error, R.string.group_record_load_failed)
                     if (snapshot == null) {
                         loadErrorMessage = message
                     } else {

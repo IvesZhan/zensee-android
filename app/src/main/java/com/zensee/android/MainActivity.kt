@@ -65,12 +65,14 @@ class MainActivity : AppCompatActivity() {
     private var groupUnreadCount = 0
     private var isGroupLoading = false
     private var groupErrorMessage: String? = null
+    private var isGroupOfflineError = false
     private var hasStartedHomeAnimations = false
     private var privacyConsentDialog: AlertDialog? = null
     private var pendingSharedGroupId: String? = null
     private var isJoiningSharedGroup = false
     private var pendingAppSharePayload: GroupSharePayload? = null
     private var pendingAppShareDestination: MainlandShareDestination? = null
+    private var shouldRefreshGroupsAfterSettings = false
     private val pendingGroupRefreshCallbacks = mutableListOf<(Boolean) -> Unit>()
     private lateinit var privacyConsentGate: PrivacyConsentGate
     private lateinit var defaultHeaderTypeface: Typeface
@@ -281,18 +283,10 @@ class MainActivity : AppCompatActivity() {
             renderStats()
         }
         findViewById<View>(R.id.groupJoinMoreButton).setOnClickListener {
-            if (AuthManager.state().isAuthenticated) {
-                groupDiscoverLauncher.launch(Intent(this, GroupDiscoverActivity::class.java))
-            } else {
-                startActivity(Intent(this, LoginActivity::class.java))
-            }
+            handleGroupEntryAction()
         }
         findViewById<View>(R.id.groupContentJoinMoreButton).setOnClickListener {
-            if (AuthManager.state().isAuthenticated) {
-                groupDiscoverLauncher.launch(Intent(this, GroupDiscoverActivity::class.java))
-            } else {
-                startActivity(Intent(this, LoginActivity::class.java))
-            }
+            handleGroupEntryAction()
         }
         binding.headerActionButton.setOnClickListener {
             when (currentTabId) {
@@ -740,13 +734,16 @@ class MainActivity : AppCompatActivity() {
         val contentScroll = findViewById<View>(R.id.groupContentScroll)
         val emptyTitle = findViewById<TextView>(R.id.groupEmptyTitleText)
         val emptySubtitle = findViewById<TextView>(R.id.groupEmptySubtitleText)
+        val emptyActionButton = findViewById<TextView>(R.id.groupJoinMoreButton)
         val errorText = findViewById<TextView>(R.id.groupErrorText)
         val ownedTitle = findViewById<View>(R.id.groupOwnedSectionTitle)
         val joinedTitle = findViewById<View>(R.id.groupJoinedSectionTitle)
         val ownedContainer = findViewById<LinearLayout>(R.id.groupOwnedContainer)
         val joinedContainer = findViewById<LinearLayout>(R.id.groupJoinedContainer)
+        val showOfflineState = shouldShowGroupOfflineState()
 
-        errorText.visibility = if (groupErrorMessage.isNullOrBlank()) View.GONE else View.VISIBLE
+        errorText.visibility =
+            if (groupErrorMessage.isNullOrBlank() || showOfflineState) View.GONE else View.VISIBLE
         errorText.text = groupErrorMessage.orEmpty()
 
         if (!isAuthenticated) {
@@ -755,6 +752,8 @@ class MainActivity : AppCompatActivity() {
             emptyState.visibility = View.VISIBLE
             emptyTitle.text = getString(R.string.group_empty_title)
             emptySubtitle.text = getString(R.string.group_empty_subtitle)
+            emptySubtitle.visibility = View.VISIBLE
+            emptyActionButton.text = GroupUi.plusPrefixedText(this, getString(R.string.group_join_more))
             ownedContainer.removeAllViews()
             joinedContainer.removeAllViews()
             return
@@ -763,8 +762,16 @@ class MainActivity : AppCompatActivity() {
         loadingView.visibility = if (isGroupLoading && groupItems.isEmpty()) View.VISIBLE else View.GONE
         contentScroll.visibility = if (groupItems.isNotEmpty()) View.VISIBLE else View.GONE
         emptyState.visibility = if (!isGroupLoading && groupItems.isEmpty()) View.VISIBLE else View.GONE
-        emptyTitle.text = getString(R.string.group_empty_title)
+        emptyTitle.text = getString(
+            if (showOfflineState) R.string.network_error else R.string.group_empty_title
+        )
         emptySubtitle.text = getString(R.string.group_empty_subtitle)
+        emptySubtitle.visibility = if (showOfflineState) View.GONE else View.VISIBLE
+        emptyActionButton.text = if (showOfflineState) {
+            getString(R.string.go_to_settings)
+        } else {
+            GroupUi.plusPrefixedText(this, getString(R.string.group_join_more))
+        }
 
         val ownedGroups = groupItems.filter { it.isOwner }
         val joinedGroups = groupItems.filter { it.isJoined && !it.isOwner }
@@ -870,6 +877,27 @@ class MainActivity : AppCompatActivity() {
         } else {
             startActivity(Intent(this, LoginActivity::class.java))
         }
+    }
+
+    private fun handleGroupEntryAction() {
+        if (shouldShowGroupOfflineState()) {
+            shouldRefreshGroupsAfterSettings = true
+            GroupUi.openNetworkSettings(this)
+            return
+        }
+
+        if (AuthManager.state().isAuthenticated) {
+            groupDiscoverLauncher.launch(Intent(this, GroupDiscoverActivity::class.java))
+        } else {
+            startActivity(Intent(this, LoginActivity::class.java))
+        }
+    }
+
+    private fun shouldShowGroupOfflineState(): Boolean {
+        return AuthManager.state().isAuthenticated &&
+            !isGroupLoading &&
+            groupItems.isEmpty() &&
+            isGroupOfflineError
     }
 
     private fun updateGroupCtaLabels() {
@@ -1030,6 +1058,10 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         if (::binding.isInitialized) {
             renderAll()
+            if (shouldRefreshGroupsAfterSettings) {
+                shouldRefreshGroupsAfterSettings = false
+                refreshGroupData(force = true)
+            }
             if (skipNextRemoteRefresh) {
                 skipNextRemoteRefresh = false
             } else if (AppDataRefreshCoordinator.shouldRefreshZenData()) {
@@ -1058,6 +1090,7 @@ class MainActivity : AppCompatActivity() {
             removedGroupId.isNotBlank() -> {
                 groupItems = GroupPresentationRules.removeGroupById(groupItems, removedGroupId)
                 groupErrorMessage = null
+                isGroupOfflineError = false
                 isGroupLoading = false
                 renderGroups()
                 if (shouldRefreshGroups) {
@@ -1111,11 +1144,12 @@ class MainActivity : AppCompatActivity() {
                 isJoiningSharedGroup = false
                 result.onSuccess {
                     groupErrorMessage = null
+                    isGroupOfflineError = false
                     refreshGroupData(force = true)
                     prepareJoinedGroupDetailAndOpen(groupId)
                 }.onFailure { error ->
                     consumePendingSharedGroupFlow()
-                    Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, GroupUi.errorMessage(this, error), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -1134,7 +1168,7 @@ class MainActivity : AppCompatActivity() {
                     consumePendingSharedGroupFlow()
                     Toast.makeText(
                         this,
-                        error.message ?: getString(R.string.group_detail_load_failed),
+                        GroupUi.errorMessage(this, error, R.string.group_detail_load_failed),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -1162,6 +1196,7 @@ class MainActivity : AppCompatActivity() {
     private fun refreshGroupUnreadCount() {
         if (!AuthManager.state().isAuthenticated) {
             groupUnreadCount = 0
+            isGroupOfflineError = false
             renderGroups()
             return
         }
@@ -1171,6 +1206,7 @@ class MainActivity : AppCompatActivity() {
                 result.onSuccess { unreadCount ->
                     groupUnreadCount = unreadCount
                     groupErrorMessage = null
+                    isGroupOfflineError = false
                 }
                 renderGroups()
             }
@@ -1216,6 +1252,7 @@ class MainActivity : AppCompatActivity() {
             groupItems = emptyList()
             groupUnreadCount = 0
             groupErrorMessage = null
+            isGroupOfflineError = false
             isGroupLoading = false
             renderGroups()
             completePendingGroupRefreshCallbacks(false)
@@ -1226,6 +1263,7 @@ class MainActivity : AppCompatActivity() {
 
         isGroupLoading = true
         groupErrorMessage = null
+        isGroupOfflineError = false
         renderGroups()
         thread(name = "zensee-group-home") {
             val result = runCatching {
@@ -1244,15 +1282,18 @@ class MainActivity : AppCompatActivity() {
                     groupItems = groups
                     groupUnreadCount = unreadCount
                     groupErrorMessage = null
+                    isGroupOfflineError = false
                 }.onFailure { error ->
                     if (!AuthManager.state().isAuthenticated) {
                         groupItems = emptyList()
                         groupUnreadCount = 0
                         groupErrorMessage = null
+                        isGroupOfflineError = false
                     } else {
                         groupItems = emptyList()
                         groupUnreadCount = 0
-                        groupErrorMessage = error.message ?: getString(R.string.operation_failed)
+                        groupErrorMessage = GroupUi.errorMessage(this, error)
+                        isGroupOfflineError = GroupUi.isNetworkError(error)
                     }
                 }
                 renderGroups()
@@ -1283,10 +1324,12 @@ class MainActivity : AppCompatActivity() {
             return
         }
         consumePendingSharedGroupFlow()
+        shouldRefreshGroupsAfterSettings = false
         isStatsLoading = false
         groupItems = emptyList()
         groupUnreadCount = 0
         groupErrorMessage = null
+        isGroupOfflineError = false
         isGroupLoading = false
         renderAll()
     }

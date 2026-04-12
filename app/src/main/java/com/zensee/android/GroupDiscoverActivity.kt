@@ -221,7 +221,7 @@ class GroupDiscoverActivity : AppCompatActivity() {
                         Toast.makeText(this, getString(R.string.group_share_success), Toast.LENGTH_SHORT).show()
                     }.onFailure { error ->
                         render()
-                        Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, GroupUi.errorMessage(this, error), Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -243,7 +243,7 @@ class GroupDiscoverActivity : AppCompatActivity() {
                     Toast.makeText(this, getString(R.string.group_join_request_submitted), Toast.LENGTH_SHORT).show()
                 }.onFailure { error ->
                     render()
-                    Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, GroupUi.errorMessage(this, error), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -278,7 +278,7 @@ class GroupDiscoverActivity : AppCompatActivity() {
                     searchResults = groups
                 }.onFailure { error ->
                     searchResults = emptyList()
-                    Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, GroupUi.errorMessage(this, error), Toast.LENGTH_SHORT).show()
                 }
                 render()
             }
@@ -330,7 +330,7 @@ class GroupDiscoverActivity : AppCompatActivity() {
                         myGroups = emptyList()
                         sharedGroupIds = emptySet()
                     }
-                    Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, GroupUi.errorMessage(this, error), Toast.LENGTH_SHORT).show()
                 }
                 render()
             }

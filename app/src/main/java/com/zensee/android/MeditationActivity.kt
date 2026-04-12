@@ -18,16 +18,19 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.zensee.android.data.GroupRepository
 import com.zensee.android.data.ZenRepository
 import com.zensee.android.databinding.ActivityMeditationBinding
 import com.zensee.android.domain.MeditationCountdownEngine
 import com.zensee.android.domain.MeditationCountdownPhase
 import com.zensee.android.domain.MeditationTickEffect
 import com.zensee.android.model.GroupShareMode
+import com.zensee.android.model.MeditationSessionSummary
 import java.time.Instant
 import android.view.animation.LinearInterpolator
 import kotlin.math.ceil
 import kotlin.math.max
+import kotlin.concurrent.thread
 
 class MeditationActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMeditationBinding
@@ -42,6 +45,9 @@ class MeditationActivity : AppCompatActivity() {
     private var secondsRemaining = meditationSeconds
     private var lastSavedMinutes = 0
     private var sessionCompleted = false
+    private var currentCompletedSession: MeditationSessionSummary? = null
+    private var isAutoCheckInRunning = false
+    private var autoCheckInStatusMessage: String? = null
     private var holdStartTime = 0L
     private var startChimePending = true
 
@@ -129,7 +135,7 @@ class MeditationActivity : AppCompatActivity() {
                 startActivity(Intent(this, LoginActivity::class.java))
                 return@setOnClickListener
             }
-            val latestSessionId = ZenRepository.getRecentSessions(1).firstOrNull()?.id
+            val latestSessionId = currentCompletedSession?.id ?: ZenRepository.getRecentSessions(1).firstOrNull()?.id
             if (!sessionCompleted || latestSessionId.isNullOrBlank()) {
                 Toast.makeText(this, getString(R.string.no_meditation_records), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -208,7 +214,7 @@ class MeditationActivity : AppCompatActivity() {
             return
         }
         lastSavedMinutes = roundUpMinutes(elapsedSeconds)
-        ZenRepository.saveSession(
+        currentCompletedSession = ZenRepository.saveSession(
             durationMinutes = lastSavedMinutes,
             startedAt = startedAt,
             endedAt = Instant.now()
@@ -220,7 +226,7 @@ class MeditationActivity : AppCompatActivity() {
         if (sessionCompleted) return
         handler.removeCallbacks(tickRunnable)
         lastSavedMinutes = roundUpMinutes(meditationSeconds)
-        ZenRepository.saveSession(
+        currentCompletedSession = ZenRepository.saveSession(
             durationMinutes = lastSavedMinutes,
             startedAt = startedAt,
             endedAt = Instant.now()
@@ -238,6 +244,8 @@ class MeditationActivity : AppCompatActivity() {
         binding.completedMeditationContent.isVisible = true
         binding.completedMinutesText.text = buildMinutesDisplay(lastSavedMinutes)
         binding.completedMinutesUnitText.isVisible = false
+        renderAutoCheckInState()
+        currentCompletedSession?.let(::triggerAutoCheckInIfNeeded)
     }
 
     private fun startTimerLoop(withInitialDelay: Boolean) {
@@ -341,6 +349,61 @@ class MeditationActivity : AppCompatActivity() {
         view.scaleX = scale
         view.scaleY = scale
         view.alpha = alpha.coerceAtLeast(0f)
+    }
+
+    private fun triggerAutoCheckInIfNeeded(session: MeditationSessionSummary) {
+        val authState = AuthManager.state()
+        val userId = authState.userId
+        if (!authState.isAuthenticated || userId.isNullOrBlank()) {
+            autoCheckInStatusMessage = null
+            renderAutoCheckInState()
+            return
+        }
+
+        val enabledGroupIds = GroupAutoCheckInManager.enabledGroupIds(userId)
+        if (enabledGroupIds.isEmpty()) {
+            autoCheckInStatusMessage = null
+            renderAutoCheckInState()
+            return
+        }
+
+        isAutoCheckInRunning = true
+        autoCheckInStatusMessage = getString(R.string.group_auto_check_in_running)
+        renderAutoCheckInState()
+        thread(name = "zensee-auto-group-checkin") {
+            val result = runCatching {
+                ZenRepository.ensureSessionSynced(session)
+                enabledGroupIds
+                    .fold(0) { count, group ->
+                        val wasShared = runCatching {
+                            GroupRepository.shareSessions(
+                                listOf(session.id),
+                                group,
+                                GroupShareMode.APPEND_SESSIONS
+                            )
+                        }.isSuccess
+                        if (wasShared) count + 1 else count
+                    }
+            }
+            runOnUiThread {
+                if (isDestroyed || isFinishing) return@runOnUiThread
+                isAutoCheckInRunning = false
+                autoCheckInStatusMessage = result.fold(
+                    onSuccess = { count ->
+                        if (count > 0) getString(R.string.group_auto_check_in_success, count) else null
+                    },
+                    onFailure = {
+                        getString(R.string.group_auto_check_in_failed)
+                    }
+                )
+                renderAutoCheckInState()
+            }
+        }
+    }
+
+    private fun renderAutoCheckInState() {
+        binding.autoCheckInStatusText.isVisible = !autoCheckInStatusMessage.isNullOrBlank()
+        binding.autoCheckInStatusText.text = autoCheckInStatusMessage.orEmpty()
     }
 
     private fun applyWindowInsets() {

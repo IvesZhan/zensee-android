@@ -106,6 +106,59 @@ object GroupRepository {
         )
     }
 
+    fun updateGroupName(groupId: String, name: String): String {
+        val userId = currentUserId()
+        val normalizedName = name.trim()
+        if (normalizedName.length !in 2..24) {
+            throw GroupException("群组名称请控制在 2 到 24 个字符之间。")
+        }
+
+        request(
+            path = "/rest/v1/groups?id=${encodedEq(groupId)}&owner_id=${encodedEq(userId)}",
+            method = "PATCH",
+            body = JSONObject()
+                .put("name", normalizedName)
+                .put("updated_at", Instant.now().toString())
+        )
+        AppDataRefreshCoordinator.invalidateGroupData()
+        return normalizedName
+    }
+
+    fun updateGroupDescription(groupId: String, description: String): String {
+        val userId = currentUserId()
+        val normalizedDescription = description.trim()
+        if (normalizedDescription.length > 120) {
+            throw GroupException("群组介绍最多 120 个字符。")
+        }
+
+        request(
+            path = "/rest/v1/groups?id=${encodedEq(groupId)}&owner_id=${encodedEq(userId)}",
+            method = "PATCH",
+            body = JSONObject()
+                .put("description", normalizedDescription)
+                .put("updated_at", Instant.now().toString())
+        )
+        AppDataRefreshCoordinator.invalidateGroupData()
+        return normalizedDescription
+    }
+
+    fun updateGroupNickname(groupId: String, nickname: String): String {
+        val normalizedNickname = nickname.trim()
+        if (normalizedNickname.isEmpty() || normalizedNickname.length > 24) {
+            throw GroupException("本群昵称请控制在 1 到 24 个字符之间。")
+        }
+
+        request(
+            path = "/rest/v1/rpc/update_group_membership_nickname",
+            method = "POST",
+            body = JSONObject()
+                .put("target_group_id", groupId)
+                .put("target_nickname", normalizedNickname)
+        )
+        AppDataRefreshCoordinator.invalidateGroupData()
+        return normalizedNickname
+    }
+
     fun fetchGroupDetail(groupId: String): GroupDetailSnapshot {
         val userId = currentUserId()
         val group = fetchGroups(listOf(groupId)).firstOrNull()
@@ -131,7 +184,9 @@ object GroupRepository {
 
             GroupMemberStatus(
                 userId = membership.userId,
-                nickname = profileById[membership.userId]?.nickname?.ifBlank { "禅友" } ?: "禅友",
+                nickname = membership.nickname?.ifBlank { null }
+                    ?: profileById[membership.userId]?.nickname?.ifBlank { "禅友" }
+                    ?: "禅友",
                 avatarUrl = profileById[membership.userId]?.avatarUrl,
                 role = membership.role,
                 joinedAt = membership.createdAt,
@@ -316,6 +371,10 @@ object GroupRepository {
     }
 
     fun shareSessions(sessionIds: List<String>, group: GroupModel, mode: GroupShareMode = GroupShareMode.APPEND_SESSIONS) {
+        shareSessions(sessionIds, group.id, mode)
+    }
+
+    fun shareSessions(sessionIds: List<String>, groupId: String, mode: GroupShareMode = GroupShareMode.APPEND_SESSIONS) {
         val ids = sessionIds.distinct().filter { it.isNotBlank() }
         if (ids.isEmpty()) {
             throw GroupException("当前没有可分享的禅修记录。")
@@ -323,12 +382,12 @@ object GroupRepository {
         val userId = currentUserId()
 
         if (mode == GroupShareMode.REPLACE_DAILY_SUMMARY) {
-            replaceSharedSessions(ids, group.id, userId)
+            replaceSharedSessions(ids, groupId, userId)
         }
 
         ids.forEach { sessionId ->
             val payload = JSONObject()
-                .put("group_id", group.id)
+                .put("group_id", groupId)
                 .put("user_id", userId)
                 .put("meditation_session_id", sessionId)
             request(
@@ -338,6 +397,7 @@ object GroupRepository {
                 preferMergeDuplicates = true
             )
         }
+        AppDataRefreshCoordinator.invalidateGroupData()
     }
 
     fun fetchSharedGroupIds(sessionIds: List<String>): Set<String> {
@@ -414,7 +474,7 @@ object GroupRepository {
 
     private fun fetchMemberships(userId: String, groupIds: List<String>? = null): List<GroupMembershipRecord> {
         val path = buildString {
-            append("/rest/v1/group_memberships?select=group_id,user_id,role,created_at")
+            append("/rest/v1/group_memberships?select=group_id,user_id,role,nickname,created_at")
             append("&user_id=")
             append(encodedEq(userId))
             if (!groupIds.isNullOrEmpty()) {
@@ -431,7 +491,7 @@ object GroupRepository {
             JSONArray(
                 request(
                     path = "/rest/v1/group_memberships" +
-                        "?select=group_id,user_id,role,created_at" +
+                        "?select=group_id,user_id,role,nickname,created_at" +
                         "&group_id=${encodedEq(groupId)}" +
                         "&order=created_at.asc",
                     method = "GET"
@@ -727,6 +787,7 @@ object GroupRepository {
                         groupId = item.getString("group_id"),
                         userId = item.getString("user_id"),
                         role = role,
+                        nickname = item.optNullableString("nickname"),
                         createdAt = parseInstant(item.optString("created_at"))
                     )
                 )
@@ -777,6 +838,7 @@ object GroupRepository {
         val groupId: String,
         val userId: String,
         val role: GroupMembershipRole,
+        val nickname: String?,
         val createdAt: Instant
     )
 

@@ -1,9 +1,13 @@
 package com.zensee.android
 
+import android.app.Activity
+import android.content.Intent
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
+import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,6 +16,10 @@ import androidx.core.content.ContextCompat
 import com.zensee.android.model.GroupMemberStatus
 import com.zensee.android.databinding.ItemGroupRowBinding
 import com.zensee.android.model.GroupModel
+import java.net.ConnectException
+import java.net.NoRouteToHostException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 object GroupUi {
     data class GroupTextEmphasisStyle(
@@ -184,6 +192,84 @@ object GroupUi {
         }
         target.visibility = View.VISIBLE
         target.text = if (count > 99) "99+" else count.toString()
+    }
+
+    fun errorMessage(
+        context: Context,
+        error: Throwable,
+        fallbackResId: Int = R.string.operation_failed
+    ): String {
+        return when {
+            isNetworkError(error) -> context.getString(R.string.network_error)
+            else -> error.message?.trim().orEmpty().ifBlank {
+                context.getString(fallbackResId)
+            }
+        }
+    }
+
+    fun isNetworkError(error: Throwable): Boolean {
+        var current: Throwable? = error
+        while (current != null) {
+            when (current) {
+                is UnknownHostException,
+                is ConnectException,
+                is SocketTimeoutException,
+                is NoRouteToHostException -> return true
+            }
+
+            if (isNetworkMessage(current.message)) {
+                return true
+            }
+
+            current = current.cause
+        }
+
+        return false
+    }
+
+    fun isNetworkMessage(message: String?): Boolean {
+        val normalized = message?.trim()?.lowercase().orEmpty()
+        if (normalized.isBlank()) return false
+
+        return normalized.contains("network") ||
+            normalized.contains("internet") ||
+            normalized.contains("offline") ||
+            normalized.contains("unable to resolve host") ||
+            normalized.contains("no address associated with hostname") ||
+            normalized.contains("failed to connect") ||
+            normalized.contains("could not connect") ||
+            normalized.contains("timed out") ||
+            normalized.contains("timeout") ||
+            normalized.contains("dns") ||
+            normalized.contains("hostname") ||
+            normalized.contains("网络连接失败") ||
+            normalized.contains("網絡連接失敗") ||
+            normalized.contains("ネットワーク")
+    }
+
+    fun openNetworkSettings(activity: Activity): Boolean {
+        val candidates = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                add(Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY))
+            }
+            add(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+            add(Intent(Settings.ACTION_WIFI_SETTINGS))
+            add(Intent(Settings.ACTION_SETTINGS))
+        }
+
+        candidates.forEach { intent ->
+            val canHandle = intent.resolveActivity(activity.packageManager) != null
+            if (!canHandle) return@forEach
+
+            val opened = runCatching {
+                activity.startActivity(intent)
+            }.isSuccess
+            if (opened) {
+                return true
+            }
+        }
+
+        return false
     }
 
     private fun randomAvatarColor(index: Int): Int {

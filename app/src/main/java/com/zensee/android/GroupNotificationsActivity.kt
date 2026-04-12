@@ -79,7 +79,7 @@ class GroupNotificationsActivity : AppCompatActivity() {
                     items = notifications
                 }.onFailure { error ->
                     items = emptyList()
-                    Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, GroupUi.errorMessage(this, error), Toast.LENGTH_SHORT).show()
                 }
                 render()
             }
@@ -181,7 +181,7 @@ class GroupNotificationsActivity : AppCompatActivity() {
                     loadNotifications(markAsRead = false, showLoadingState = false)
                 }.onFailure { error ->
                     render()
-                    Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, GroupUi.errorMessage(this, error), Toast.LENGTH_SHORT).show()
                 }
             }
         }

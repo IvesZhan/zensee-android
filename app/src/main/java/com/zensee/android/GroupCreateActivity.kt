@@ -87,7 +87,7 @@ class GroupCreateActivity : AppCompatActivity() {
                     setResult(RESULT_OK)
                     finish()
                 }.onFailure { error ->
-                    Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, GroupUi.errorMessage(this, error), Toast.LENGTH_SHORT).show()
                 }
             }
         }

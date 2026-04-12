@@ -3,8 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/action_more_group"
-        android:icon="@drawable/ic_share_more"
-        android:title="@string/group_more_info_title"
+        android:id="@+id/action_share_group"
+        android:icon="@drawable/ic_profile_share"
+        android:title="@string/group_share_link_action"
         app:showAsAction="always" />
 </menu>

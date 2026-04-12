@@ -67,7 +67,7 @@ class GroupManagementActivity : AppCompatActivity() {
                     snapshot = detail
                     render()
                 }.onFailure { error ->
-                    Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, GroupUi.errorMessage(this, error), Toast.LENGTH_SHORT).show()
                     finish()
                 }
             }
@@ -127,7 +127,7 @@ class GroupManagementActivity : AppCompatActivity() {
                             )
                             loadDetail()
                         }.onFailure { error ->
-                            Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, GroupUi.errorMessage(this, error), Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -178,7 +178,7 @@ class GroupManagementActivity : AppCompatActivity() {
                     finish()
                 }.onFailure { error ->
                     render()
-                    Toast.makeText(this, error.message ?: getString(R.string.operation_failed), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, GroupUi.errorMessage(this, error), Toast.LENGTH_SHORT).show()
                 }
             }
         }
