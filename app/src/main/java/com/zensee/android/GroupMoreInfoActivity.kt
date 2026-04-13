@@ -41,9 +41,13 @@ class GroupMoreInfoActivity : AppCompatActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode != RESULT_OK) return@registerForActivityResult
-        if (result.data?.getBooleanExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, false) == true) {
+        val data = result.data
+        val appliedLocalUpdate = applyEditorResult(data) != null
+        if (data?.getBooleanExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, false) == true) {
             shouldRefreshGroupsOnExit = true
-            loadDetail()
+            if (!appliedLocalUpdate) {
+                loadDetail()
+            }
         }
     }
 
@@ -417,6 +421,37 @@ class GroupMoreInfoActivity : AppCompatActivity() {
         )
     }
 
+    private fun applyEditorResult(data: Intent?): GroupDetailSnapshot? {
+        val savedValue = data?.getStringExtra(GroupSettingEditorActivity.EXTRA_SAVED_VALUE) ?: return null
+        val current = currentSnapshot() ?: return null
+        val editorType = data.getStringExtra(GroupSettingEditorActivity.EXTRA_SAVED_EDITOR_TYPE)
+        val updatedSnapshot = when (editorType) {
+            "GROUP_NAME" -> current.copy(
+                group = current.group.copy(name = savedValue)
+            )
+
+            "GROUP_DESCRIPTION" -> current.copy(
+                group = current.group.copy(groupDescription = savedValue)
+            )
+
+            "GROUP_NICKNAME" -> current.copy(
+                members = current.members.map { member ->
+                    if (member.userId == current.currentUserId) {
+                        member.copy(nickname = savedValue)
+                    } else {
+                        member
+                    }
+                }
+            )
+
+            else -> null
+        } ?: return null
+
+        snapshot = updatedSnapshot
+        render()
+        return updatedSnapshot
+    }
+
     private fun currentGroupNickname(snapshot: GroupDetailSnapshot): String {
         return snapshot.members
             .firstOrNull { it.userId == snapshot.currentUserId }
@@ -475,12 +510,16 @@ class GroupMoreInfoActivity : AppCompatActivity() {
 
     override fun finish() {
         if (!hasExplicitResult && (shouldRefreshGroupsOnExit || shouldRefreshNotificationsOnExit)) {
+            val current = snapshot
             hasExplicitResult = true
             setResult(
                 RESULT_OK,
                 Intent()
                     .putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, shouldRefreshGroupsOnExit)
                     .putExtra(MainActivity.GROUP_RESULT_REFRESH_NOTIFICATIONS, shouldRefreshNotificationsOnExit)
+                    .putExtra(EXTRA_UPDATED_GROUP_NAME, current?.group?.name)
+                    .putExtra(EXTRA_UPDATED_GROUP_DESCRIPTION, current?.group?.groupDescription)
+                    .putExtra(EXTRA_UPDATED_GROUP_NICKNAME, current?.let(::currentGroupNickname))
             )
         }
         super.finish()
@@ -491,6 +530,9 @@ class GroupMoreInfoActivity : AppCompatActivity() {
         const val EXTRA_DISSOLVED = "extra_group_dissolved"
         const val EXTRA_GROUP_CLOSED = "extra_group_closed"
         const val EXTRA_SNAPSHOT = "extra_group_snapshot"
+        const val EXTRA_UPDATED_GROUP_NAME = "extra_group_updated_name"
+        const val EXTRA_UPDATED_GROUP_DESCRIPTION = "extra_group_updated_description"
+        const val EXTRA_UPDATED_GROUP_NICKNAME = "extra_group_updated_nickname"
     }
 
     private fun Intent.snapshotExtra(): GroupDetailSnapshot? {

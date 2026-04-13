@@ -14,8 +14,9 @@ import com.zensee.android.data.ZenRepository
 import com.zensee.android.databinding.ActivityMeditationHistoryBinding
 import com.zensee.android.databinding.ItemHistoryGroupBinding
 import com.zensee.android.databinding.ItemHistorySessionDetailBinding
-import com.zensee.android.model.HistoryDayGroup
 import com.zensee.android.model.GroupShareMode
+import com.zensee.android.model.HistoryDayGroup
+import com.zensee.android.model.MeditationSessionKind
 import com.zensee.android.model.MeditationSessionSummary
 import java.time.LocalDate
 import java.time.ZoneId
@@ -99,8 +100,9 @@ class MeditationHistoryActivity : AppCompatActivity() {
         val itemBinding = ItemHistoryGroupBinding.inflate(LayoutInflater.from(this), binding.pastRecordsContainer, false)
         itemBinding.historyDateText.text = dateFormatter.format(group.date)
         itemBinding.historyTotalText.text = getString(R.string.meditation_duration_full, group.totalMinutes)
+        val shouldShowDetails = group.sessions.size > 1 || group.sessions.any(::shouldShowSessionType)
 
-        if (group.sessions.size <= 1) {
+        if (!shouldShowDetails) {
             itemBinding.historyChevronText.isVisible = false
             itemBinding.historyGroupHeader.isClickable = false
             itemBinding.historyGroupHeader.isFocusable = false
@@ -110,7 +112,7 @@ class MeditationHistoryActivity : AppCompatActivity() {
         itemBinding.historyDetailsContainer.addView(createSectionDivider())
         group.sessions.forEachIndexed { index, session ->
             val detailBinding = ItemHistorySessionDetailBinding.inflate(LayoutInflater.from(this), itemBinding.historyDetailsContainer, false)
-            detailBinding.sessionTimeRangeText.text = formatTimeRange(session)
+            detailBinding.sessionTimeRangeText.text = formatSessionLabel(session)
             detailBinding.sessionDurationText.text = getString(R.string.meditation_duration_full, session.durationMinutes)
             itemBinding.historyDetailsContainer.addView(detailBinding.root)
 
@@ -125,11 +127,18 @@ class MeditationHistoryActivity : AppCompatActivity() {
             }
         }
 
-        var expanded = false
-        itemBinding.historyGroupHeader.setOnClickListener {
-            expanded = !expanded
-            itemBinding.historyDetailsContainer.isVisible = expanded
-            itemBinding.historyChevronText.text = if (expanded) "⌃" else "⌄"
+        if (group.sessions.size == 1) {
+            itemBinding.historyChevronText.isVisible = false
+            itemBinding.historyGroupHeader.isClickable = false
+            itemBinding.historyGroupHeader.isFocusable = false
+            itemBinding.historyDetailsContainer.isVisible = true
+        } else {
+            var expanded = false
+            itemBinding.historyGroupHeader.setOnClickListener {
+                expanded = !expanded
+                itemBinding.historyDetailsContainer.isVisible = expanded
+                itemBinding.historyChevronText.text = if (expanded) "⌃" else "⌄"
+            }
         }
         return itemBinding.root
     }
@@ -147,7 +156,10 @@ class MeditationHistoryActivity : AppCompatActivity() {
         }
     }
 
-    private fun formatTimeRange(session: MeditationSessionSummary): String {
+    private fun formatSessionLabel(session: MeditationSessionSummary): String {
+        if (session.kind == MeditationSessionKind.GROUP_PRACTICE) {
+            return getString(R.string.group_detail_practice_action)
+        }
         val start = session.startedAt.atZone(zoneId).toLocalTime()
         val end = session.endedAt.atZone(zoneId).toLocalTime()
         val startLabel = timeFormatter.format(start)
@@ -157,6 +169,10 @@ class MeditationHistoryActivity : AppCompatActivity() {
         } else {
             "$startLabel - $endLabel"
         }
+    }
+
+    private fun shouldShowSessionType(session: MeditationSessionSummary): Boolean {
+        return session.kind != MeditationSessionKind.REGULAR
     }
 
     private fun applyWindowInsets() {

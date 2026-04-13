@@ -58,6 +58,11 @@
     <color name="zs_stats_badge_fill">#F8F3EC</color>
     <color name="zs_stats_badge_stroke">#33A89574</color>
     <color name="zs_history_detail_fill">#40FFFCF8</color>
+    <color name="zs_primary_button_fill_start">#998A7C</color>
+    <color name="zs_primary_button_fill_end">#8E8071</color>
+    <color name="zs_secondary_button_fill">#EBE9E5</color>
+    <color name="zs_secondary_button_stroke">#148E8071</color>
+    <color name="zs_warning_button_text">#A96F52</color>
     <color name="zs_primary_gradient_start">#998A7C</color>
     <color name="zs_primary_gradient_end">#8E8071</color>
     <color name="zs_primary_button_stroke">#59FFFFFF</color>

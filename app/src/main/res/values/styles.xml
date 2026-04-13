@@ -45,6 +45,19 @@
         <item name="android:paddingBottom">0dp</item>
     </style>
 
+    <style name="Widget.ZenSee.WarningButton" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/bg_group_reject_button_state</item>
+        <item name="android:textColor">@color/zs_warning_button_text</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingLeft">0dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingRight">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+    </style>
+
     <style name="Widget.ZenSee.CardSurface" parent="Widget.MaterialComponents.CardView">
         <item name="cardBackgroundColor">@color/zs_card_fill</item>
         <item name="cardCornerRadius">24dp</item>

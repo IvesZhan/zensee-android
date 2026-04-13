@@ -320,6 +320,7 @@ class MeditationSetupBottomSheet : BottomSheetDialogFragment() {
 
     companion object {
         const val REQUEST_KEY = "meditation_setup"
+        const val TAG = "meditation_setup"
         const val KEY_DURATION = "duration_minutes"
         const val KEY_COOL_DOWN = "cool_down_minutes"
         private const val PREFS_NAME = "zensee_meditation_setup"

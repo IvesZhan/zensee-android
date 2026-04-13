@@ -1181,7 +1181,7 @@ class MainActivity : AppCompatActivity() {
 
         repeat(3) { attempt ->
             try {
-                return GroupRepository.fetchGroupDetail(groupId)
+                return GroupRepository.fetchGroupDetailWithHistory(groupId)
             } catch (error: Throwable) {
                 lastError = error
                 if (attempt < 2) {

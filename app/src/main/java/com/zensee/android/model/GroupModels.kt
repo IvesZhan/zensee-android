@@ -52,6 +52,16 @@ enum class GroupShareMode(val rawValue: String) {
     }
 }
 
+enum class GroupDailyStatusKind(val rawValue: String) {
+    ON_LEAVE("on_leave");
+
+    companion object {
+        fun from(rawValue: String?): GroupDailyStatusKind? {
+            return entries.firstOrNull { it.rawValue == rawValue }
+        }
+    }
+}
+
 data class GroupModel(
     val id: String,
     val ownerId: String,
@@ -92,6 +102,7 @@ data class GroupMemberStatus(
     val role: GroupMembershipRole,
     val joinedAt: Instant,
     val didCheckInToday: Boolean,
+    val didTakeLeave: Boolean,
     val totalMinutesToday: Int,
     val lastSharedAt: Instant?
 ) : Serializable
@@ -101,6 +112,12 @@ data class GroupDailyRollup(
     val sessionDate: LocalDate,
     val totalMinutes: Int,
     val lastSharedAt: Instant?
+) : Serializable
+
+data class GroupDailyLeaveRecord(
+    val userId: String,
+    val sessionDate: LocalDate,
+    val status: GroupDailyStatusKind
 ) : Serializable
 
 data class GroupRecordMemberSummary(
@@ -155,6 +172,9 @@ object GroupDetailMemberOrdering {
                     lhs.userId == currentUserId || rhs.userId == currentUserId ->
                         if (lhs.userId == currentUserId) -1 else 1
 
+                    lhs.didTakeLeave != rhs.didTakeLeave ->
+                        if (lhs.didTakeLeave) 1 else -1
+
                     memberDisplayInstant(lhs) != memberDisplayInstant(rhs) ->
                         memberDisplayInstant(rhs).compareTo(memberDisplayInstant(lhs))
 
@@ -176,7 +196,8 @@ object GroupRecordSummaryBuilder {
         date: LocalDate,
         members: List<GroupMemberStatus>,
         currentUserId: String,
-        rollupsByUser: Map<String, GroupDailyRollup>
+        rollupsByUser: Map<String, GroupDailyRollup>,
+        leaveUserIds: Set<String> = emptySet()
     ): GroupRecordDaySummary? {
         val zoneId = ZoneId.systemDefault()
         val eligibleMembers = members.filter { member ->
@@ -193,6 +214,7 @@ object GroupRecordSummaryBuilder {
                 role = member.role,
                 joinedAt = member.joinedAt,
                 didCheckInToday = rollup != null,
+                didTakeLeave = rollup == null && leaveUserIds.contains(member.userId),
                 totalMinutesToday = rollup?.totalMinutes ?: 0,
                 lastSharedAt = rollup?.lastSharedAt
             )
@@ -229,7 +251,8 @@ object GroupRecordSummaryBuilder {
 object GroupRecordSnapshotBuilder {
     fun build(
         detailSnapshot: GroupDetailSnapshot,
-        rollups: List<GroupDailyRollup>
+        rollups: List<GroupDailyRollup>,
+        leaveRecords: List<GroupDailyLeaveRecord> = emptyList()
     ): GroupRecordSnapshot {
         val zoneId = ZoneId.systemDefault()
         val today = LocalDate.now()
@@ -240,6 +263,10 @@ object GroupRecordSnapshotBuilder {
             .filter { currentMemberIds.contains(it.userId) }
             .groupBy { it.sessionDate }
             .mapValues { (_, dailyRollups) -> dailyRollups.associateBy { it.userId } }
+        val leaveUserIdsByDate = leaveRecords
+            .filter { currentMemberIds.contains(it.userId) && it.status == GroupDailyStatusKind.ON_LEAVE }
+            .groupBy { it.sessionDate }
+            .mapValues { (_, records) -> records.mapTo(linkedSetOf()) { it.userId } }
 
         val days = mutableListOf<GroupRecordDaySummary>()
         var cursor = today
@@ -248,7 +275,8 @@ object GroupRecordSnapshotBuilder {
                 date = cursor,
                 members = detailSnapshot.members,
                 currentUserId = detailSnapshot.currentUserId,
-                rollupsByUser = rollupsByDate[cursor] ?: emptyMap()
+                rollupsByUser = rollupsByDate[cursor] ?: emptyMap(),
+                leaveUserIds = leaveUserIdsByDate[cursor] ?: emptySet()
             )?.let(days::add)
             cursor = cursor.minusDays(1)
         }
@@ -312,5 +340,6 @@ data class GroupDetailSnapshot(
     val currentUserId: String,
     val currentUserRole: GroupMembershipRole,
     val members: List<GroupMemberStatus>,
+    val consecutiveCheckInDays: Int = 0,
     val yesterdaySummary: GroupRecordDaySummary? = null
 ) : Serializable

@@ -404,6 +404,15 @@ erDiagram
   - `meditation_session_id uuid`
   - `created_at timestamptz`
 
+- `public.group_member_daily_statuses`
+  - `id uuid`
+  - `group_id uuid`
+  - `user_id uuid`
+  - `session_date date`
+  - `status text`
+  - `created_at timestamptz`
+  - `updated_at timestamptz`
+
 #### 5.6.2 高置信逆推表
 
 - `public.profiles`
@@ -416,6 +425,7 @@ erDiagram
   - `user_id uuid`
   - `session_date text`
   - `duration_minutes integer`
+  - `session_kind text`
   - `created_at timestamptz`
   - `started_at text or timestamptz`
   - `ended_at text or timestamptz`

@@ -1,5 +1,6 @@
 package com.zensee.android
 
+import android.graphics.Typeface
 import android.os.Bundle
 import android.text.SpannableStringBuilder
 import android.text.Spanned
@@ -9,11 +10,9 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.zensee.android.data.GroupRepository
 import com.zensee.android.databinding.ActivityGroupRecordBinding
-import com.zensee.android.databinding.DialogGroupRecordMembersBinding
 import com.zensee.android.databinding.ItemGroupMemberBinding
 import com.zensee.android.databinding.ItemGroupRecordDayBinding
 import com.zensee.android.model.GroupMemberStatus
@@ -50,19 +49,8 @@ class GroupRecordActivity : AppCompatActivity() {
         }
         AuthUi.applyEdgeToEdge(this, binding.groupRecordRoot, binding.groupRecordToolbar)
 
-        val initialGroupName = intent.getStringExtra(EXTRA_GROUP_NAME)
-            .orEmpty()
-            .ifBlank { getString(R.string.group_group_fallback) }
-        binding.groupRecordHeaderTitleText.text =
-            getString(R.string.group_record_header_title, initialGroupName)
-        binding.groupRecordStreakText.text = "0"
-        binding.groupRecordMissedCountText.text = "0"
-
         binding.groupRecordRetryButton.setOnClickListener {
             loadRecord()
-        }
-        binding.groupRecordMissedButton.setOnClickListener {
-            showYesterdayMissedMembers()
         }
     }
 
@@ -87,7 +75,8 @@ class GroupRecordActivity : AppCompatActivity() {
             val result = runCatching {
                 val detailSnapshot = GroupRepository.fetchGroupDetail(groupId)
                 val dailyRollups = GroupRepository.fetchGroupDailyRollups(groupId)
-                GroupRecordSnapshotBuilder.build(detailSnapshot, dailyRollups)
+                val dailyLeaveRecords = GroupRepository.fetchGroupDailyLeaveRecords(groupId)
+                GroupRecordSnapshotBuilder.build(detailSnapshot, dailyRollups, dailyLeaveRecords)
             }
             runOnUiThread {
                 if (isDestroyed || isFinishing) return@runOnUiThread
@@ -119,12 +108,6 @@ class GroupRecordActivity : AppCompatActivity() {
             if (current != null) View.VISIBLE else View.GONE
         binding.groupRecordEmptyText.text = loadErrorMessage ?: getString(R.string.group_record_load_failed)
         if (current == null) return
-
-        binding.groupRecordHeaderTitleText.text =
-            getString(R.string.group_record_header_title, current.group.name)
-        binding.groupRecordStreakText.text = current.consecutiveCheckInDays.toString()
-        binding.groupRecordMissedCountText.text =
-            (current.yesterdaySummary?.missedMembers?.count() ?: 0).toString()
 
         val avatarStyles = GroupUi.buildMemberAvatarStyles(this, current.members, current.currentUserId)
         renderDayCards(current, avatarStyles)
@@ -272,12 +255,30 @@ class GroupRecordActivity : AppCompatActivity() {
         GroupUi.applyMemberNameTextStyle(itemBinding.groupMemberNameText)
         itemBinding.groupMemberRoleBadge.visibility =
             if (member.role == GroupMembershipRole.OWNER) View.VISIBLE else View.GONE
-        itemBinding.groupMemberStatusText.visibility = View.GONE
-        if (totalMinutes != null) {
+        if (member.didTakeLeave) {
+            itemBinding.groupMemberStatusText.visibility = View.GONE
             itemBinding.groupMemberMinutesText.visibility = View.VISIBLE
-            itemBinding.groupMemberMinutesText.text = buildMinutesText(totalMinutes)
+            itemBinding.groupMemberMinutesText.text = getString(R.string.group_on_leave_status)
+            itemBinding.groupMemberMinutesText.setTextColor(getColor(R.color.zs_text_subtle))
+            itemBinding.groupMemberMinutesText.textSize = 13f
+            itemBinding.groupMemberMinutesText.setTypeface(
+                itemBinding.groupMemberMinutesText.typeface,
+                Typeface.BOLD
+            )
         } else {
-            itemBinding.groupMemberMinutesText.visibility = View.GONE
+            itemBinding.groupMemberStatusText.visibility = View.GONE
+            if (totalMinutes != null) {
+                itemBinding.groupMemberMinutesText.visibility = View.VISIBLE
+                itemBinding.groupMemberMinutesText.text = buildMinutesText(totalMinutes)
+                itemBinding.groupMemberMinutesText.setTextColor(getColor(R.color.zs_gold))
+                itemBinding.groupMemberMinutesText.textSize = 15f
+                itemBinding.groupMemberMinutesText.setTypeface(
+                    itemBinding.groupMemberMinutesText.typeface,
+                    Typeface.BOLD
+                )
+            } else {
+                itemBinding.groupMemberMinutesText.visibility = View.GONE
+            }
         }
         return itemBinding.root
     }
@@ -307,60 +308,6 @@ class GroupRecordActivity : AppCompatActivity() {
                 this.topMargin = topMargin
             }
         }
-    }
-
-    private fun showYesterdayMissedMembers() {
-        val current = snapshot ?: return
-        showMemberDialog(
-            title = getString(R.string.group_record_yesterday_missed),
-            entries = current.yesterdaySummary
-                ?.missedMembers
-                ?.map { GroupRecordDialogEntry(member = it, totalMinutes = null) }
-                .orEmpty()
-        )
-    }
-
-    private fun showMemberDialog(
-        title: String,
-        entries: List<GroupRecordDialogEntry>
-    ) {
-        val dialogBinding = DialogGroupRecordMembersBinding.inflate(layoutInflater)
-        dialogBinding.groupRecordDialogTitleText.text = title
-
-        val currentSnapshot = snapshot
-        val avatarStyles = GroupUi.buildMemberAvatarStyles(
-            this,
-            currentSnapshot?.members.orEmpty(),
-            currentSnapshot?.currentUserId
-        )
-
-        if (entries.isEmpty()) {
-            dialogBinding.groupRecordDialogEmptyText.visibility = View.VISIBLE
-            dialogBinding.groupRecordDialogScroll.visibility = View.GONE
-        } else {
-            dialogBinding.groupRecordDialogEmptyText.visibility = View.GONE
-            dialogBinding.groupRecordDialogScroll.visibility = View.VISIBLE
-            entries.forEachIndexed { index, entry ->
-                dialogBinding.groupRecordDialogMembersContainer.addView(
-                    createMemberRow(
-                        member = entry.member,
-                        avatarStyle = avatarStyles[entry.member.userId],
-                        totalMinutes = entry.totalMinutes
-                    )
-                )
-                if (index < entries.lastIndex) {
-                    dialogBinding.groupRecordDialogMembersContainer.addView(createDivider())
-                }
-            }
-        }
-
-        val dialog = AlertDialog.Builder(this)
-            .setView(dialogBinding.root)
-            .create()
-
-        dialogBinding.groupRecordDialogCloseButton.setOnClickListener { dialog.dismiss() }
-        dialog.show()
-        PopupDialogStyler.apply(dialog)
     }
 
     private fun toggleDayExpanded(dayId: String) {
@@ -419,11 +366,6 @@ class GroupRecordActivity : AppCompatActivity() {
         const val EXTRA_GROUP_ID = "extra_group_id"
         const val EXTRA_GROUP_NAME = "extra_group_name"
     }
-
-    private data class GroupRecordDialogEntry(
-        val member: GroupMemberStatus,
-        val totalMinutes: Int?
-    )
 
     private val Int.dp: Int
         get() = (this * resources.displayMetrics.density).toInt()

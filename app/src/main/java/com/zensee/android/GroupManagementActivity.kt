@@ -92,10 +92,10 @@ class GroupManagementActivity : AppCompatActivity() {
                 fallbackView = itemBinding.groupManageMemberAvatarText
             )
             itemBinding.groupManageMemberNameText.text = member.nickname
-            itemBinding.groupManageMemberStatusText.text = if (member.didCheckInToday) {
-                getString(R.string.group_status_minutes_full, member.totalMinutesToday)
-            } else {
-                getString(R.string.group_status_not_meditated)
+            itemBinding.groupManageMemberStatusText.text = when {
+                member.didCheckInToday -> getString(R.string.group_status_minutes_full, member.totalMinutesToday)
+                member.didTakeLeave -> getString(R.string.group_on_leave_status)
+                else -> getString(R.string.group_status_not_meditated)
             }
             itemBinding.groupManageMemberActionText.text = getString(R.string.group_remove_action)
             itemBinding.groupManageMemberActionText.setOnClickListener {

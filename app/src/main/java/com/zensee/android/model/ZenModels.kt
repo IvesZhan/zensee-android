@@ -3,12 +3,24 @@ package com.zensee.android.model
 import java.time.Instant
 import java.time.LocalDate
 
+enum class MeditationSessionKind(val rawValue: String) {
+    REGULAR("regular"),
+    GROUP_PRACTICE("group_practice");
+
+    companion object {
+        fun from(rawValue: String?): MeditationSessionKind {
+            return entries.firstOrNull { it.rawValue == rawValue } ?: REGULAR
+        }
+    }
+}
+
 data class MeditationSessionSummary(
     val id: String = "",
     val sessionDate: LocalDate,
     val durationMinutes: Int,
     val startedAt: Instant = Instant.EPOCH,
-    val endedAt: Instant = Instant.EPOCH
+    val endedAt: Instant = Instant.EPOCH,
+    val kind: MeditationSessionKind = MeditationSessionKind.REGULAR
 )
 
 data class MoodRecord(

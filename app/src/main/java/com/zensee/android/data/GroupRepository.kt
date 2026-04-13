@@ -6,13 +6,16 @@ import com.zensee.android.BuildConfig
 import com.zensee.android.RawHttpResponse
 import com.zensee.android.SessionAwareRequestExecutor
 import com.zensee.android.model.GroupDetailSnapshot
+import com.zensee.android.model.GroupDailyLeaveRecord
 import com.zensee.android.model.GroupDailyRollup
+import com.zensee.android.model.GroupDailyStatusKind
 import com.zensee.android.model.GroupJoinRequestStatus
 import com.zensee.android.model.GroupMemberStatus
 import com.zensee.android.model.GroupMembershipRole
 import com.zensee.android.model.GroupModel
 import com.zensee.android.model.GroupNotificationItem
 import com.zensee.android.model.GroupNotificationType
+import com.zensee.android.model.GroupRecordSnapshotBuilder
 import com.zensee.android.model.GroupRecordSummaryBuilder
 import com.zensee.android.model.GroupShareMode
 import org.json.JSONArray
@@ -160,6 +163,24 @@ object GroupRepository {
     }
 
     fun fetchGroupDetail(groupId: String): GroupDetailSnapshot {
+        return fetchGroupDetail(groupId, dailyRollups = null, dailyLeaveRecords = null)
+    }
+
+    fun fetchGroupDetailWithHistory(groupId: String): GroupDetailSnapshot {
+        val dailyRollups = fetchGroupDailyRollups(groupId)
+        val dailyLeaveRecords = fetchGroupDailyLeaveRecords(groupId)
+        return fetchGroupDetail(
+            groupId = groupId,
+            dailyRollups = dailyRollups,
+            dailyLeaveRecords = dailyLeaveRecords
+        )
+    }
+
+    private fun fetchGroupDetail(
+        groupId: String,
+        dailyRollups: List<GroupDailyRollup>?,
+        dailyLeaveRecords: List<GroupDailyLeaveRecord>?
+    ): GroupDetailSnapshot {
         val userId = currentUserId()
         val group = fetchGroups(listOf(groupId)).firstOrNull()
             ?: throw GroupException("暂时无法加载群组详情")
@@ -172,13 +193,22 @@ object GroupRepository {
         val profileById = fetchProfiles(memberIds)
         val today = LocalDate.now()
         val yesterday = today.minusDays(1)
-        val rollups = fetchRollups(groupId, listOf(today, yesterday))
+        val rollups = dailyRollups?.filter { it.sessionDate == today || it.sessionDate == yesterday }
+            ?: fetchRollups(groupId, listOf(today, yesterday))
+        val leaveRecords = dailyLeaveRecords?.filter { it.sessionDate == today || it.sessionDate == yesterday }
+            ?: fetchGroupDailyLeaveRecords(groupId, listOf(today, yesterday))
         val todayRollupByUserId = rollups
             .filter { it.sessionDate == today }
             .associateBy { it.userId }
         val yesterdayRollupByUserId = rollups
             .filter { it.sessionDate == yesterday }
             .associateBy { it.userId }
+        val todayLeaveUserIds = leaveRecords
+            .filter { it.sessionDate == today && it.status == GroupDailyStatusKind.ON_LEAVE }
+            .mapTo(hashSetOf()) { it.userId }
+        val yesterdayLeaveUserIds = leaveRecords
+            .filter { it.sessionDate == yesterday && it.status == GroupDailyStatusKind.ON_LEAVE }
+            .mapTo(hashSetOf()) { it.userId }
         val members = memberships.map { membership ->
             val rollup = todayRollupByUserId[membership.userId]
 
@@ -191,19 +221,21 @@ object GroupRepository {
                 role = membership.role,
                 joinedAt = membership.createdAt,
                 didCheckInToday = rollup != null,
+                didTakeLeave = rollup == null && todayLeaveUserIds.contains(membership.userId),
                 totalMinutesToday = rollup?.totalMinutes ?: 0,
                 lastSharedAt = rollup?.lastSharedAt
             )
         }.sortedWith { lhs, rhs ->
             when {
                 lhs.didCheckInToday != rhs.didCheckInToday -> if (!lhs.didCheckInToday) -1 else 1
+                lhs.didTakeLeave != rhs.didTakeLeave -> if (lhs.didTakeLeave) 1 else -1
                 lhs.role != rhs.role -> if (lhs.role == GroupMembershipRole.OWNER) -1 else 1
                 lhs.totalMinutesToday != rhs.totalMinutesToday -> rhs.totalMinutesToday.compareTo(lhs.totalMinutesToday)
                 else -> lhs.joinedAt.compareTo(rhs.joinedAt)
             }
         }
 
-        return GroupDetailSnapshot(
+        val detailSnapshot = GroupDetailSnapshot(
             group = group.withMembership(currentRole),
             currentUserId = userId,
             currentUserRole = currentRole,
@@ -212,9 +244,20 @@ object GroupRepository {
                 date = yesterday,
                 members = members,
                 currentUserId = userId,
-                rollupsByUser = yesterdayRollupByUserId
+                rollupsByUser = yesterdayRollupByUserId,
+                leaveUserIds = yesterdayLeaveUserIds
             )
         )
+
+        return if (dailyRollups == null) {
+            detailSnapshot
+        } else {
+            detailSnapshot.copy(
+                consecutiveCheckInDays = GroupRecordSnapshotBuilder
+                    .build(detailSnapshot, dailyRollups, dailyLeaveRecords ?: emptyList())
+                    .consecutiveCheckInDays
+            )
+        }
     }
 
     fun fetchGroupDailyRollups(groupId: String): List<GroupDailyRollup> {
@@ -229,6 +272,43 @@ object GroupRepository {
                 )
             )
         )
+    }
+
+    fun fetchGroupDailyLeaveRecords(
+        groupId: String,
+        sessionDates: List<LocalDate>? = null
+    ): List<GroupDailyLeaveRecord> {
+        val targetDates = sessionDates
+            ?.distinct()
+            ?.map(LocalDate::toString)
+            .orEmpty()
+        val path = buildString {
+            append("/rest/v1/group_member_daily_statuses")
+            append("?select=group_id,user_id,session_date,status")
+            append("&group_id=")
+            append(encodedEq(groupId))
+            if (targetDates.isNotEmpty()) {
+                append("&session_date=")
+                append(encodedIn(targetDates))
+            }
+            append("&order=session_date.desc")
+        }
+        return parseGroupDailyLeaveRecords(JSONArray(request(path, "GET")))
+    }
+
+    fun submitLeaveForToday(groupId: String) {
+        val userId = currentUserId()
+        request(
+            path = "/rest/v1/group_member_daily_statuses?on_conflict=group_id,user_id,session_date",
+            method = "POST",
+            body = JSONObject()
+                .put("group_id", groupId)
+                .put("user_id", userId)
+                .put("session_date", LocalDate.now().toString())
+                .put("status", GroupDailyStatusKind.ON_LEAVE.rawValue),
+            preferMergeDuplicates = true
+        )
+        AppDataRefreshCoordinator.invalidateGroupData()
     }
 
     fun submitJoinRequest(groupId: String) {
@@ -380,6 +460,8 @@ object GroupRepository {
             throw GroupException("当前没有可分享的禅修记录。")
         }
         val userId = currentUserId()
+        val includesTodaySession = ZenRepository.getRecentSessions(limit = 365)
+            .any { session -> ids.contains(session.id) && session.sessionDate == LocalDate.now() }
 
         if (mode == GroupShareMode.REPLACE_DAILY_SUMMARY) {
             replaceSharedSessions(ids, groupId, userId)
@@ -396,6 +478,11 @@ object GroupRepository {
                 body = payload,
                 preferMergeDuplicates = true
             )
+        }
+        if (includesTodaySession) {
+            runCatching {
+                clearTodayLeaveStatus(groupId, userId)
+            }
         }
         AppDataRefreshCoordinator.invalidateGroupData()
     }
@@ -449,6 +536,17 @@ object GroupRepository {
                 "?group_id=${encodedEq(groupId)}" +
                 "&user_id=${encodedEq(userId)}" +
                 "&meditation_session_id=${encodedIn(ownedIds)}",
+            method = "DELETE"
+        )
+    }
+
+    private fun clearTodayLeaveStatus(groupId: String, userId: String) {
+        request(
+            path = "/rest/v1/group_member_daily_statuses" +
+                "?group_id=${encodedEq(groupId)}" +
+                "&user_id=${encodedEq(userId)}" +
+                "&session_date=${encodedEq(LocalDate.now().toString())}" +
+                "&status=${encodedEq(GroupDailyStatusKind.ON_LEAVE.rawValue)}",
             method = "DELETE"
         )
     }
@@ -596,6 +694,22 @@ object GroupRepository {
                         sessionDate = LocalDate.parse(item.getString("session_date")),
                         totalMinutes = item.optInt("total_minutes"),
                         lastSharedAt = parseNullableInstant(item.optString("last_shared_at"))
+                    )
+                )
+            }
+        }
+    }
+
+    private fun parseGroupDailyLeaveRecords(response: JSONArray): List<GroupDailyLeaveRecord> {
+        return buildList {
+            for (index in 0 until response.length()) {
+                val item = response.getJSONObject(index)
+                val status = GroupDailyStatusKind.from(item.optString("status")) ?: continue
+                add(
+                    GroupDailyLeaveRecord(
+                        userId = item.getString("user_id"),
+                        sessionDate = LocalDate.parse(item.getString("session_date")),
+                        status = status
                     )
                 )
             }

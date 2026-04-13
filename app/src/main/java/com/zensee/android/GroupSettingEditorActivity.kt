@@ -180,6 +180,7 @@ class GroupSettingEditorActivity : AppCompatActivity() {
                         RESULT_OK,
                         Intent()
                             .putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, true)
+                            .putExtra(EXTRA_SAVED_EDITOR_TYPE, editorType.name)
                             .putExtra(EXTRA_SAVED_VALUE, it)
                     )
                     android.widget.Toast.makeText(this, successMessage, android.widget.Toast.LENGTH_SHORT).show()
@@ -216,6 +217,7 @@ class GroupSettingEditorActivity : AppCompatActivity() {
         const val EXTRA_GROUP_ID = "extra_group_id"
         const val EXTRA_EDITOR_TYPE = "extra_group_editor_type"
         const val EXTRA_INITIAL_VALUE = "extra_group_initial_value"
+        const val EXTRA_SAVED_EDITOR_TYPE = "extra_group_saved_editor_type"
         const val EXTRA_SAVED_VALUE = "extra_group_saved_value"
 
         fun newGroupNameIntent(activity: AppCompatActivity, groupId: String, initialValue: String): Intent {

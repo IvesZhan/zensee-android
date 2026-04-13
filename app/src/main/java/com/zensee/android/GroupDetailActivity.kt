@@ -11,12 +11,12 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.updateLayoutParams
 import com.zensee.android.data.GroupRepository
 import com.zensee.android.databinding.ActivityGroupDetailBinding
 import com.zensee.android.databinding.ItemGroupMemberBinding
-import com.zensee.android.model.GroupDetailMemberOrdering
 import com.zensee.android.model.GroupDetailSnapshot
 import com.zensee.android.model.GroupMemberStatus
 import kotlin.math.max
@@ -27,6 +27,7 @@ class GroupDetailActivity : AppCompatActivity() {
     private var snapshot: GroupDetailSnapshot? = null
     private var isLoading = false
     private var loadErrorMessage: String? = null
+    private var isSubmittingLeaveRequest = false
     private var shouldSkipNextResumeReload = false
 
     private val moreInfoLauncher = registerForActivityResult(
@@ -52,6 +53,11 @@ class GroupDetailActivity : AppCompatActivity() {
             )
             finish()
             return@registerForActivityResult
+        }
+
+        if (applyUpdatedGroupFields(data)) {
+            loadErrorMessage = null
+            render()
         }
 
         if (shouldRefreshGroups || shouldRefreshNotifications) {
@@ -83,9 +89,21 @@ class GroupDetailActivity : AppCompatActivity() {
         binding.groupDetailToolbar.setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
+        supportFragmentManager.setFragmentResultListener(
+            GroupPracticeDurationBottomSheet.REQUEST_KEY,
+            this
+        ) { _, _ ->
+            setResult(
+                RESULT_OK,
+                Intent().putExtra(MainActivity.GROUP_RESULT_REFRESH_GROUPS, true)
+            )
+            loadDetail()
+        }
         AuthUi.applyEdgeToEdge(this, binding.groupDetailRoot, binding.groupDetailToolbar)
         binding.groupRecordCard.setOnClickListener { openGroupRecord() }
         binding.groupDetailRetryButton.setOnClickListener { loadDetail() }
+        binding.groupPracticeButton.setOnClickListener { openGroupPractice() }
+        binding.groupLeaveRequestButton.setOnClickListener { confirmLeaveRequest() }
 
         if (snapshot != null) {
             shouldSkipNextResumeReload = true
@@ -144,7 +162,7 @@ class GroupDetailActivity : AppCompatActivity() {
         loadErrorMessage = null
         render()
         thread(name = "zensee-group-detail") {
-            val result = runCatching { GroupRepository.fetchGroupDetail(groupId) }
+            val result = runCatching { GroupRepository.fetchGroupDetailWithHistory(groupId) }
             runOnUiThread {
                 if (isDestroyed || isFinishing) return@runOnUiThread
                 isLoading = false
@@ -172,7 +190,10 @@ class GroupDetailActivity : AppCompatActivity() {
             if (!isLoading && current == null) android.view.View.VISIBLE else android.view.View.GONE
         binding.groupDetailScroll.visibility =
             if (current != null) android.view.View.VISIBLE else android.view.View.GONE
+        binding.groupDetailBottomActions.visibility =
+            if (current != null) android.view.View.VISIBLE else android.view.View.GONE
         binding.groupDetailEmptyText.text = loadErrorMessage ?: getString(R.string.group_detail_load_failed)
+        updatePracticeActionState()
         invalidateOptionsMenu()
         if (current == null) return
 
@@ -183,36 +204,39 @@ class GroupDetailActivity : AppCompatActivity() {
         )
         binding.groupDescriptionText.text = current.group.displayDescription
         binding.groupDescriptionText.post { syncDescriptionAccentHeight() }
-        binding.groupMembersCountText.text = buildPeopleCountText(current.members.size)
-        binding.groupMeditatedCountText.text =
-            buildPeopleCountText(current.members.count { it.didCheckInToday })
-        binding.groupRecordSummaryText.text = recordSummaryText(current)
+        binding.groupDetailRecordHeaderTitleText.text = getString(R.string.group_record_header_title)
+        binding.groupDetailStreakText.text = current.consecutiveCheckInDays.toString()
         val avatarStyles = GroupUi.buildMemberAvatarStyles(this, current.members, current.currentUserId)
 
         renderMemberSection(
-            members = orderedMembers(current.members, current.currentUserId, didCheckInToday = false),
-            container = binding.groupNotMeditatedContainer,
-            card = binding.groupNotMeditatedCard,
+            members = current.yesterdaySummary?.missedMembers.orEmpty(),
+            title = binding.groupYesterdayMissedTitleText,
+            container = binding.groupYesterdayMissedContainer,
+            card = binding.groupYesterdayMissedCard,
             avatarStyles = avatarStyles
         )
-        renderMemberSection(
-            members = orderedMembers(current.members, current.currentUserId, didCheckInToday = true),
-            container = binding.groupMeditatedContainer,
-            card = binding.groupMeditatedCard,
-            avatarStyles = avatarStyles
-        )
+        binding.groupDetailScroll.post { adjustYesterdayMissedCardHeight() }
     }
 
     private fun renderMemberSection(
         members: List<GroupMemberStatus>,
+        title: android.view.View,
         container: android.widget.LinearLayout,
         card: android.view.View,
         avatarStyles: Map<String, GroupUi.GroupMemberAvatarStyle>
     ) {
-        card.visibility = if (members.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+        val visibility = if (members.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+        title.visibility = visibility
+        card.visibility = visibility
         container.removeAllViews()
         members.forEach { member ->
             val itemBinding = ItemGroupMemberBinding.inflate(LayoutInflater.from(this), container, false)
+            itemBinding.root.setPadding(
+                itemBinding.root.paddingLeft,
+                7.dp,
+                itemBinding.root.paddingRight,
+                7.dp
+            )
             itemBinding.groupMemberAvatarText.text = member.nickname.take(1).ifBlank { "禅" }
             GroupUi.applyMemberAvatarStyle(itemBinding.groupMemberAvatarText, avatarStyles[member.userId])
             AvatarImageLoader.load(
@@ -228,13 +252,46 @@ class GroupDetailActivity : AppCompatActivity() {
                 } else {
                     android.view.View.GONE
                 }
-            itemBinding.groupMemberStatusText.text =
-                if (member.didCheckInToday) getString(R.string.group_meditated) else ""
+            itemBinding.groupMemberStatusText.text = when {
+                member.didCheckInToday -> getString(R.string.group_meditated)
+                member.didTakeLeave -> getString(R.string.group_on_leave_status)
+                else -> ""
+            }
             itemBinding.groupMemberStatusText.visibility =
-                if (member.didCheckInToday) android.view.View.VISIBLE else android.view.View.GONE
+                if (member.didCheckInToday || member.didTakeLeave) android.view.View.VISIBLE else android.view.View.GONE
             itemBinding.groupMemberMinutesText.text =
                 if (member.didCheckInToday) buildMinutesText(member.totalMinutesToday) else ""
+            itemBinding.groupMemberMinutesText.visibility =
+                if (member.didCheckInToday) android.view.View.VISIBLE else android.view.View.GONE
             container.addView(itemBinding.root)
+        }
+    }
+
+    private fun adjustYesterdayMissedCardHeight() {
+        val scroll = binding.groupYesterdayMissedScroll
+        val card = binding.groupYesterdayMissedCard
+        if (card.visibility != android.view.View.VISIBLE) {
+            scroll.layoutParams = scroll.layoutParams.apply {
+                height = android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            }
+            return
+        }
+
+        val maxHeight = binding.groupDetailScroll.height - card.top - binding.groupDetailScroll.paddingBottom
+        if (maxHeight <= 0) return
+
+        val contentHeight =
+            binding.groupYesterdayMissedContainer.height + scroll.paddingTop + scroll.paddingBottom
+        val targetHeight = if (contentHeight > maxHeight) {
+            maxHeight
+        } else {
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+
+        if (scroll.layoutParams.height != targetHeight) {
+            scroll.layoutParams = scroll.layoutParams.apply {
+                height = targetHeight
+            }
         }
     }
 
@@ -252,34 +309,6 @@ class GroupDetailActivity : AppCompatActivity() {
             ?: getString(R.string.group_owner_fallback)
     }
 
-    private fun orderedMembers(
-        members: List<GroupMemberStatus>,
-        currentUserId: String?,
-        didCheckInToday: Boolean
-    ): List<GroupMemberStatus> {
-        return GroupDetailMemberOrdering.members(
-            from = members,
-            currentUserId = currentUserId,
-            didCheckInToday = didCheckInToday
-        )
-    }
-
-    private fun buildPeopleCountText(count: Int): CharSequence {
-        val countText = count.toString()
-        val unitText = getString(R.string.group_people_unit)
-        return SpannableStringBuilder()
-            .append(countText)
-            .append(unitText)
-            .apply {
-                setSpan(
-                    RelativeSizeSpan(0.52f),
-                    countText.length,
-                    length,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-            }
-    }
-
     private fun buildMinutesText(minutes: Int): CharSequence {
         val countText = minutes.toString()
         val fullText = getString(R.string.group_status_minutes, minutes)
@@ -293,18 +322,6 @@ class GroupDetailActivity : AppCompatActivity() {
                 )
             }
         }
-    }
-
-    private fun recordSummaryText(snapshot: GroupDetailSnapshot): String {
-        val yesterdaySummary = snapshot.yesterdaySummary
-        if (yesterdaySummary != null) {
-            return getString(
-                R.string.group_record_entry_summary,
-                yesterdaySummary.checkedInCount,
-                yesterdaySummary.eligibleMemberCount
-            )
-        }
-        return getString(R.string.group_record_entry_empty)
     }
 
     private fun syncDescriptionAccentHeight() {
@@ -322,6 +339,136 @@ class GroupDetailActivity : AppCompatActivity() {
                 .putExtra(GroupRecordActivity.EXTRA_GROUP_ID, currentSnapshot.group.id)
                 .putExtra(GroupRecordActivity.EXTRA_GROUP_NAME, currentSnapshot.group.name)
         )
+    }
+
+    private fun openGroupPractice() {
+        val currentSnapshot = snapshot ?: return
+        if (supportFragmentManager.findFragmentByTag(GroupPracticeDurationBottomSheet.TAG) != null) return
+        GroupPracticeDurationBottomSheet.newInstance(currentSnapshot.group.id).show(
+            supportFragmentManager,
+            GroupPracticeDurationBottomSheet.TAG
+        )
+    }
+
+    private fun confirmLeaveRequest() {
+        val currentMember = currentUserMemberStatus() ?: return
+        if (isSubmittingLeaveRequest) return
+        if (currentMember.didCheckInToday) {
+            Toast.makeText(this, getString(R.string.group_leave_after_meditation), Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (currentMember.didTakeLeave) {
+            Toast.makeText(this, getString(R.string.group_leave_already_submitted), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.group_leave_request_confirm_title))
+            .setMessage(getString(R.string.group_leave_request_confirm_message))
+            .setNegativeButton(getString(R.string.cancel), null)
+            .setPositiveButton(getString(R.string.group_leave_request_confirm_action)) { _, _ ->
+                submitLeaveRequest()
+            }
+            .show()
+    }
+
+    private fun submitLeaveRequest() {
+        val currentSnapshot = snapshot ?: return
+        val currentMember = currentUserMemberStatus() ?: return
+        if (isSubmittingLeaveRequest) return
+        if (currentMember.didCheckInToday) {
+            Toast.makeText(this, getString(R.string.group_leave_after_meditation), Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (currentMember.didTakeLeave) {
+            Toast.makeText(this, getString(R.string.group_leave_already_submitted), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        isSubmittingLeaveRequest = true
+        updatePracticeActionState()
+        thread(name = "zensee-group-leave-request") {
+            val result = runCatching {
+                GroupRepository.submitLeaveForToday(currentSnapshot.group.id)
+            }
+            runOnUiThread {
+                if (isDestroyed || isFinishing) return@runOnUiThread
+                isSubmittingLeaveRequest = false
+                result.onSuccess {
+                    snapshot = currentSnapshot.copy(
+                        members = currentSnapshot.members.map { member ->
+                            if (member.userId == currentSnapshot.currentUserId) {
+                                member.copy(
+                                    didCheckInToday = false,
+                                    didTakeLeave = true,
+                                    totalMinutesToday = 0,
+                                    lastSharedAt = null
+                                )
+                            } else {
+                                member
+                            }
+                        }
+                    )
+                    render()
+                    Toast.makeText(this, getString(R.string.group_leave_request_saved), Toast.LENGTH_SHORT).show()
+                    loadDetail()
+                }.onFailure { error ->
+                    updatePracticeActionState()
+                    Toast.makeText(
+                        this,
+                        GroupUi.errorMessage(this, error, R.string.group_leave_request_failed),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private fun updatePracticeActionState() {
+        val currentSnapshot = snapshot
+        val currentMember = currentUserMemberStatus()
+        binding.groupPracticeButton.isEnabled = currentSnapshot != null
+        binding.groupLeaveRequestButton.text = if (currentMember?.didTakeLeave == true) {
+            getString(R.string.group_detail_leave_done_action)
+        } else {
+            getString(R.string.group_detail_leave_action)
+        }
+        binding.groupLeaveRequestButton.isEnabled = currentSnapshot != null &&
+            !isSubmittingLeaveRequest &&
+            currentMember?.didCheckInToday != true &&
+            currentMember?.didTakeLeave != true
+    }
+
+    private fun currentUserMemberStatus(): GroupMemberStatus? {
+        val currentSnapshot = snapshot ?: return null
+        return currentSnapshot.members.firstOrNull { it.userId == currentSnapshot.currentUserId }
+    }
+
+    private fun applyUpdatedGroupFields(data: Intent?): Boolean {
+        val current = snapshot ?: return false
+        val updatedName = data?.getStringExtra(GroupMoreInfoActivity.EXTRA_UPDATED_GROUP_NAME)
+        val updatedDescription = data?.getStringExtra(GroupMoreInfoActivity.EXTRA_UPDATED_GROUP_DESCRIPTION)
+        val updatedNickname = data?.getStringExtra(GroupMoreInfoActivity.EXTRA_UPDATED_GROUP_NICKNAME)
+        if (updatedName == null && updatedDescription == null && updatedNickname == null) return false
+
+        snapshot = current.copy(
+            group = current.group.copy(
+                name = updatedName ?: current.group.name,
+                groupDescription = updatedDescription ?: current.group.groupDescription
+            ),
+            members = if (updatedNickname == null) {
+                current.members
+            } else {
+                current.members.map { member ->
+                    if (member.userId == current.currentUserId) {
+                        member.copy(nickname = updatedNickname)
+                    } else {
+                        member
+                    }
+                }
+            }
+        )
+        return true
     }
 
     companion object {

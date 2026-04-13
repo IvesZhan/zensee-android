@@ -10,6 +10,7 @@ import com.zensee.android.domain.ZenStatsCalculator
 import com.zensee.android.model.GroupCard
 import com.zensee.android.model.HistoryDayGroup
 import com.zensee.android.model.HomeSnapshot
+import com.zensee.android.model.MeditationSessionKind
 import com.zensee.android.model.MeditationSessionSummary
 import com.zensee.android.model.MoodRecord
 import com.zensee.android.model.MoodDayGroup
@@ -67,9 +68,19 @@ object ZenRepository {
             return false
         }
 
+        val localSessionsById = loadSessions().associateBy { it.id }
         val sessions = CloudSyncApi.fetchSessions(userId, accessToken)
         val moods = CloudSyncApi.fetchMoods(userId, accessToken)
-        persistSessions(sessions)
+        persistSessions(
+            sessions.map { session ->
+                val localKind = localSessionsById[session.id]?.kind ?: MeditationSessionKind.REGULAR
+                if (session.kind == MeditationSessionKind.REGULAR && localKind != MeditationSessionKind.REGULAR) {
+                    session.copy(kind = localKind)
+                } else {
+                    session
+                }
+            }
+        )
         persistMoods(moods)
         AppDataRefreshCoordinator.markZenDataFresh()
         return true
@@ -178,7 +189,9 @@ object ZenRepository {
     fun saveSession(
         durationMinutes: Int,
         startedAt: Instant,
-        endedAt: Instant
+        endedAt: Instant,
+        kind: MeditationSessionKind = MeditationSessionKind.REGULAR,
+        syncAfterSave: Boolean = true
     ): MeditationSessionSummary {
         val sessions = loadSessions().toMutableList()
         val session = MeditationSessionSummary(
@@ -186,13 +199,30 @@ object ZenRepository {
             sessionDate = startedAt.atZone(zoneId()).toLocalDate(),
             durationMinutes = durationMinutes,
             startedAt = startedAt,
-            endedAt = endedAt
+            endedAt = endedAt,
+            kind = kind
         )
         sessions += session
         persistSessions(sessions)
         AppDataRefreshCoordinator.markZenDataDirty()
-        syncSessionIfNeeded(session)
+        if (syncAfterSave) {
+            syncSessionIfNeeded(session)
+        }
         return session
+    }
+
+    fun saveGroupPracticeSession(
+        durationMinutes: Int,
+        syncAfterSave: Boolean = true
+    ): MeditationSessionSummary {
+        val now = Instant.now()
+        return saveSession(
+            durationMinutes = durationMinutes,
+            startedAt = now,
+            endedAt = now,
+            kind = MeditationSessionKind.GROUP_PRACTICE,
+            syncAfterSave = syncAfterSave
+        )
     }
 
     fun saveMood(
@@ -245,7 +275,8 @@ object ZenRepository {
             sessionDate = date,
             durationMinutes = minutes,
             startedAt = startedAt,
-            endedAt = endedAt
+            endedAt = endedAt,
+            kind = MeditationSessionKind.REGULAR
         )
     }
 
@@ -271,7 +302,8 @@ object ZenRepository {
                         sessionDate = LocalDate.parse(obj.getString("sessionDate")),
                         durationMinutes = obj.getInt("durationMinutes"),
                         startedAt = Instant.ofEpochMilli(obj.getLong("startedAt")),
-                        endedAt = Instant.ofEpochMilli(obj.getLong("endedAt"))
+                        endedAt = Instant.ofEpochMilli(obj.getLong("endedAt")),
+                        kind = MeditationSessionKind.from(obj.optString("kind"))
                     )
                 )
             }
@@ -307,6 +339,7 @@ object ZenRepository {
                     .put("durationMinutes", session.durationMinutes)
                     .put("startedAt", session.startedAt.toEpochMilli())
                     .put("endedAt", session.endedAt.toEpochMilli())
+                    .put("kind", session.kind.rawValue)
             )
         }
         prefs().edit().putString(scopedKey(KEY_SESSIONS), array.toString()).apply()
@@ -381,17 +414,15 @@ object ZenRepository {
 private object CloudSyncApi {
     private val BASE_URL = BuildConfig.SUPABASE_URL
     private val API_KEY = BuildConfig.SUPABASE_ANON_KEY
+    private const val SESSION_KIND_COLUMN = "session_kind"
 
     fun fetchSessions(userId: String, accessToken: String): List<MeditationSessionSummary> {
-        val body = request(
-            path = "/rest/v1/meditation_sessions" +
-                "?user_id=${encodedEq(userId)}" +
-                "&select=id,user_id,session_date,duration_minutes,started_at,ended_at,created_at" +
-                "&order=started_at.desc" +
-                "&limit=365",
-            method = "GET",
-            accessToken = accessToken
-        )
+        val body = try {
+            fetchSessionsBody(userId, accessToken, includeKind = true)
+        } catch (error: IllegalStateException) {
+            if (!supportsSessionKind(error)) throw error
+            fetchSessionsBody(userId, accessToken, includeKind = false)
+        }
         val array = JSONArray(body)
         return buildList {
             for (index in 0 until array.length()) {
@@ -406,7 +437,8 @@ private object CloudSyncApi {
                         sessionDate = LocalDate.parse(obj.getString("session_date")),
                         durationMinutes = obj.getInt("duration_minutes"),
                         startedAt = startedAt,
-                        endedAt = endedAt
+                        endedAt = endedAt,
+                        kind = MeditationSessionKind.from(obj.optString(SESSION_KIND_COLUMN))
                     )
                 )
             }
@@ -445,20 +477,12 @@ private object CloudSyncApi {
         userId: String,
         accessToken: String
     ) {
-        val payload = JSONObject()
-            .put("id", session.id)
-            .put("user_id", userId)
-            .put("session_date", session.sessionDate.toString())
-            .put("duration_minutes", session.durationMinutes)
-            .put("started_at", session.startedAt.toString())
-            .put("ended_at", session.endedAt.toString())
-        request(
-            path = "/rest/v1/meditation_sessions?on_conflict=id",
-            method = "POST",
-            body = payload,
-            accessToken = accessToken,
-            preferMergeDuplicates = true
-        )
+        try {
+            insertSession(session, userId, accessToken, includeKind = true)
+        } catch (error: IllegalStateException) {
+            if (!supportsSessionKind(error)) throw error
+            insertSession(session, userId, accessToken, includeKind = false)
+        }
     }
 
     fun insertMood(
@@ -509,6 +533,48 @@ private object CloudSyncApi {
             throw IllegalStateException("登录已过期，请重新登录")
         }
         return response.body
+    }
+
+    private fun fetchSessionsBody(
+        userId: String,
+        accessToken: String,
+        includeKind: Boolean
+    ): String {
+        return request(
+            path = "/rest/v1/meditation_sessions" +
+                "?user_id=${encodedEq(userId)}" +
+                "&select=id,user_id,session_date,duration_minutes,started_at,ended_at,created_at" +
+                (if (includeKind) ",$SESSION_KIND_COLUMN" else "") +
+                "&order=started_at.desc" +
+                "&limit=365",
+            method = "GET",
+            accessToken = accessToken
+        )
+    }
+
+    private fun insertSession(
+        session: MeditationSessionSummary,
+        userId: String,
+        accessToken: String,
+        includeKind: Boolean
+    ) {
+        val payload = JSONObject()
+            .put("id", session.id)
+            .put("user_id", userId)
+            .put("session_date", session.sessionDate.toString())
+            .put("duration_minutes", session.durationMinutes)
+            .put("started_at", session.startedAt.toString())
+            .put("ended_at", session.endedAt.toString())
+        if (includeKind) {
+            payload.put(SESSION_KIND_COLUMN, session.kind.rawValue)
+        }
+        request(
+            path = "/rest/v1/meditation_sessions?on_conflict=id",
+            method = "POST",
+            body = payload,
+            accessToken = accessToken,
+            preferMergeDuplicates = true
+        )
     }
 
     private fun performRequest(
@@ -563,5 +629,9 @@ private object CloudSyncApi {
         }.trim()
         if (text.isBlank() || text.equals("null", ignoreCase = true)) return null
         return text
+    }
+
+    private fun supportsSessionKind(error: IllegalStateException): Boolean {
+        return error.message?.contains(SESSION_KIND_COLUMN, ignoreCase = true) == true
     }
 }
